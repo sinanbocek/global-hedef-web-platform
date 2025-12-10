@@ -156,7 +156,7 @@ export const Customers: React.FC<CustomersProps> = ({ onNavigate }) => {
       setCustomers(formattedData);
     } catch (error) {
       console.error('Error fetching customers:', error);
-      alert('Veriler çekilirken hata oluştu. Lütfen bağlantıyı kontrol edin.');
+      showError('Hata', 'Veriler çekilirken hata oluştu. Lütfen bağlantıyı kontrol edin.');
     } finally {
       setIsLoading(false);
     }
@@ -222,7 +222,7 @@ export const Customers: React.FC<CustomersProps> = ({ onNavigate }) => {
   const [newNote, setNewNote] = useState<Partial<CustomerNote>>({ type: 'Not' });
   /* State for new family creation */
   const [newFamily, setNewFamily] = useState<Partial<FamilyGroup>>({});
-  const { showToast } = useToast();
+  const { showToast, showSuccess, showError } = useToast();
 
   // Family Edit State
   const [editingFamilyId, setEditingFamilyId] = useState<string | null>(null);
@@ -339,6 +339,7 @@ export const Customers: React.FC<CustomersProps> = ({ onNavigate }) => {
       setIsCustomerModalOpen(false);
       setNewCustomer({ type: 'Bireysel', riskScore: 10, tags: [] });
       setEditingCustomerId(null);
+      showSuccess('Başarılı', editingCustomerId ? 'Müşteri güncellendi.' : 'Yeni müşteri eklendi.');
     } catch (error) {
       showToast('Hata', 'Müşteri kaydedilirken hata oluştu.', 'error');
       console.error(error);
@@ -415,7 +416,7 @@ export const Customers: React.FC<CustomersProps> = ({ onNavigate }) => {
       setDeleteConfirmation({ isOpen: false, id: null, type: null });
     } catch (error) {
       console.error(error);
-      alert('Silme işlemi başarısız.');
+      showError('Hata', 'Silme işlemi başarısız.');
     }
   };
 
@@ -470,9 +471,10 @@ export const Customers: React.FC<CustomersProps> = ({ onNavigate }) => {
         setSelectedCustomer(formatted);
       }
       setIsAssetModalOpen(false);
+      showSuccess('Başarılı', isEditAssetMode ? 'Varlık güncellendi.' : 'Varlık eklendi.');
     } catch (error) {
       console.error(error);
-      alert('Varlık kaydedilemedi.');
+      showError('Hata', 'Varlık kaydedilemedi.');
     }
   };
 
@@ -487,7 +489,7 @@ export const Customers: React.FC<CustomersProps> = ({ onNavigate }) => {
       setSelectedCustomer({ ...selectedCustomer, assets: updatedAssets });
       setCustomers(prev => prev.map(c => c.id === selectedCustomer.id ? { ...c, assets: updatedAssets } : c));
     } catch (error) {
-      alert('Varlık silinemedi.');
+      showError('Hata', 'Varlık silinemedi.');
     }
   };
 
@@ -515,8 +517,9 @@ export const Customers: React.FC<CustomersProps> = ({ onNavigate }) => {
       setCustomers(prev => prev.map(c => c.id === selectedCustomer.id ? { ...c, notes: updatedNotes } : c));
       setIsNoteModalOpen(false);
       setNewNote({ type: 'Not' });
+      showSuccess('Başarılı', 'Not eklendi.');
     } catch (error) {
-      alert('Not eklenemedi.');
+      showError('Hata', 'Not eklenemedi.');
     }
   };
 
@@ -530,7 +533,7 @@ export const Customers: React.FC<CustomersProps> = ({ onNavigate }) => {
       setSelectedCustomer({ ...selectedCustomer, notes: updatedNotes });
       setCustomers(prev => prev.map(c => c.id === selectedCustomer.id ? { ...c, notes: updatedNotes } : c));
     } catch (error) {
-      alert('Not silinemedi.');
+      showError('Hata', 'Not silinemedi.');
     }
   };
 

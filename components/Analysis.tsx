@@ -10,6 +10,7 @@ import {
 import { MOCK_POLICIES, MOCK_TRANSACTIONS, DEFAULT_PROFIT_DISTRIBUTION, MOCK_USERS } from '../constants';
 import { FinancialTransaction, TransactionType, TransactionCategory, ProfitDistribution, CompanySettings, BankSettings, PaymentMethod } from '../types';
 import { supabase } from '../lib/supabase';
+import { useToast } from '../contexts/ToastContext';
 
 const COLORS = ['#003087', '#00C2FF', '#FF6B00', '#22c55e', '#ef4444'];
 
@@ -45,6 +46,7 @@ export const Analysis: React.FC = () => {
 
   // Current user for permissions (Assuming Admin for now based on context)
   const currentUser = MOCK_USERS.find(u => u.roles.includes('Admin'));
+  const { showSuccess } = useToast();
 
   useEffect(() => {
     const savedProfit = localStorage.getItem('profit_distribution');
@@ -151,7 +153,7 @@ export const Analysis: React.FC = () => {
       setTransactions(prev => prev.map(t =>
         t.id === editingTransactionId ? { ...t, ...newTransaction, amount: Number(newTransaction.amount) } as FinancialTransaction : t
       ));
-      alert('İşlem güncellendi.');
+      showSuccess('Başarılı', 'İşlem güncellendi.');
     } else {
       // Create new
       const t: FinancialTransaction = {
@@ -166,7 +168,7 @@ export const Analysis: React.FC = () => {
         bankAccountId: newTransaction.bankAccountId
       };
       setTransactions([t, ...transactions]);
-      alert('İşlem başarıyla eklendi.');
+      showSuccess('Başarılı', 'İşlem başarıyla eklendi.');
     }
 
     // Reset Form

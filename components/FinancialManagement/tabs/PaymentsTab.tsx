@@ -29,14 +29,14 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
 
     const { processingPayment, createPayment } = usePayments(
         () => {
-            showSuccess('Ödeme başarıyla oluşturuldu!');
+            showSuccess('Başarılı', 'Ödeme başarıyla oluşturuldu!');
             setPaymentRecipient(null);
             setPaymentAmount(0);
             setPaymentDescription('');
             onRefresh();
         },
         (error) => {
-            showError(error);
+            showError('Hata', error);
         }
     );
 
@@ -84,16 +84,16 @@ export const PaymentsTab: React.FC<PaymentsTabProps> = ({
                             <div
                                 key={`${item.type}-${item.id}`}
                                 className={`bg-white dark:bg-slate-800 p-4 rounded-xl border-l-4 shadow-sm flex justify-between items-center ${paymentRecipient?.id === item.id
-                                        ? 'border-brand-primary ring-2 ring-brand-primary/20'
-                                        : 'border-slate-300 dark:border-slate-600'
+                                    ? 'border-brand-primary ring-2 ring-brand-primary/20'
+                                    : 'border-slate-300 dark:border-slate-600'
                                     }`}
                             >
                                 <div>
                                     <div className="flex items-center gap-2">
                                         <span
                                             className={`text-xs px-2 py-0.5 rounded-full ${item.type === 'salesperson'
-                                                    ? 'bg-blue-100 text-blue-700'
-                                                    : 'bg-purple-100 text-purple-700'
+                                                ? 'bg-blue-100 text-blue-700'
+                                                : 'bg-purple-100 text-purple-700'
                                                 }`}
                                         >
                                             {item.type === 'salesperson' ? 'Satış Temsilcisi' : 'Firma Ortağı'}

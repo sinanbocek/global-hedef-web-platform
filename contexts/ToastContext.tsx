@@ -12,6 +12,8 @@ interface Toast {
 
 interface ToastContextType {
     showToast: (title: string, message: string, type: ToastType) => void;
+    showSuccess: (title: string, message: string) => void;
+    showError: (title: string, message: string) => void;
 }
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
@@ -35,8 +37,16 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setToasts((prev) => prev.filter((toast) => toast.id !== id));
     }, []);
 
+    const showSuccess = useCallback((title: string, message: string) => {
+        showToast(title, message, 'success');
+    }, [showToast]);
+
+    const showError = useCallback((title: string, message: string) => {
+        showToast(title, message, 'error');
+    }, [showToast]);
+
     return (
-        <ToastContext.Provider value={{ showToast }}>
+        <ToastContext.Provider value={{ showToast, showSuccess, showError }}>
             {children}
             {/* Toast Container */}
             <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none">

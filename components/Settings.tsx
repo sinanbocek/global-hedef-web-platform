@@ -258,7 +258,7 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
          fetchData();
       } catch (error) {
          console.error(error);
-         alert('Marka ayarları kaydedilemedi.');
+         showError('Hata', 'Marka ayarları kaydedilemedi.');
       }
    };
 
@@ -268,7 +268,7 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
 
    // --- COMPANY HANDLERS ---
    const handleSaveCompany = async () => {
-      if (!companyForm.name) return alert("Şirket adı zorunludur.");
+      if (!companyForm.name) return showError('Hata', 'Şirket adı zorunludur.');
       const companyId = editingCompanyId || companyForm.name.toLowerCase().replace(/[^a-z0-9]/g, '');
       try {
          const { error } = await supabase.from('settings_companies').upsert({
@@ -283,7 +283,8 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
          if (error) throw error;
          await fetchData();
          setIsCompanyModalOpen(false);
-      } catch (error) { console.error(error); alert('Hata oluştu.'); }
+         showSuccess('Başarılı', editingCompanyId ? 'Şirket güncellendi.' : 'Şirket eklendi.');
+      } catch (error) { console.error(error); showError('Hata', 'Hata oluştu.'); }
    };
 
    const handleDeleteCompany = async (id: string) => {
@@ -293,7 +294,7 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
          if (error) throw error;
          setCompanies(prev => prev.filter(c => c.id !== id));
          setIsCompanyModalOpen(false);
-      } catch (error) { alert('Silme işlemi başarısız.'); }
+      } catch (error) { showError('Hata', 'Silme işlemi başarısız.'); }
    };
 
    const handleAddCollateral = async () => {
@@ -310,7 +311,8 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
          // For now, re-fetch for safety
          fetchData();
          setNewCollateral({ type: 'Teminat Mektubu', amount: 0, currency: 'TL' });
-      } catch (error) { alert('Teminat eklenemedi.'); }
+         showSuccess('Başarılı', 'Teminat eklendi.');
+      } catch (error) { showError('Hata', 'Teminat eklenemedi.'); }
    };
 
    const handleDeleteCollateral = async (id: string) => {
@@ -321,12 +323,12 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
          setCompanyForm(prev => ({ ...prev, collaterals: updatedCollaterals }));
          // Optimistically update main list
          setCompanies(prev => prev.map(c => c.id === editingCompanyId ? { ...c, collaterals: updatedCollaterals } : c));
-      } catch (error) { alert('Silinemedi.'); }
+      } catch (error) { showError('Hata', 'Silinemedi.'); }
    };
 
    // --- BANK HANDLERS ---
    const handleSaveBank = async () => {
-      if (!bankForm.name) return alert("Banka adı zorunludur.");
+      if (!bankForm.name) return showError('Hata', 'Banka adı zorunludur.');
       const bankId = editingBankId || bankForm.name.toLowerCase().replace(/[^a-z0-9]/g, '');
       const logoUrl = bankForm.domain ? `https://logo.clearbit.com/${bankForm.domain}` : bankForm.logo;
       try {
@@ -340,7 +342,8 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
          if (error) throw error;
          await fetchData();
          setIsBankModalOpen(false);
-      } catch (error) { console.error(error); alert('Banka kaydedilemedi.'); }
+         showSuccess('Başarılı', editingBankId ? 'Banka güncellendi.' : 'Banka eklendi.');
+      } catch (error) { console.error(error); showError('Hata', 'Banka kaydedilemedi.'); }
    };
 
    const handleDeleteBank = async (id: string) => {
@@ -349,7 +352,7 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
          const { error } = await supabase.from('settings_banks').delete().eq('id', id);
          if (error) throw error;
          setBanks(prev => prev.filter(b => b.id !== id));
-      } catch (error) { alert('Silme işlemi başarısız.'); }
+      } catch (error) { showError('Hata', 'Silme işlemi başarısız.'); }
    };
 
    const handleSaveAccount = async () => {
@@ -381,7 +384,8 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
          await fetchData();
          setIsAccountModalOpen(false);
          setEditingAccountId(null);
-      } catch (error) { console.error(error); alert('Hesap kaydedilemedi.'); }
+         showSuccess('Başarılı', editingAccountId ? 'Hesap güncellendi.' : 'Hesap eklendi.');
+      } catch (error) { console.error(error); showError('Hata', 'Hesap kaydedilemedi.'); }
    };
 
    const handleDeleteAccount = async (accountId: string) => {
@@ -390,7 +394,7 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
          const { error } = await supabase.from('settings_bank_accounts').delete().eq('id', accountId);
          if (error) throw error;
          await fetchData();
-      } catch (error) { alert('Hesap silinemedi.'); }
+      } catch (error) { showError('Hata', 'Hesap silinemedi.'); }
    };
 
    // --- USER HANDLERS ---
@@ -478,7 +482,7 @@ export const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
          setIsUserModalOpen(false); // Close edit modal if open
       } catch (error) {
          console.error(error);
-         alert('Silme işlemi başarısız.');
+         showError('Hata', 'Silme işlemi başarısız.');
       }
    };
 

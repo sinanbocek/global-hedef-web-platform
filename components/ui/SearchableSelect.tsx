@@ -7,9 +7,10 @@ export interface SearchableSelectProps {
     onChange: (value: string) => void;
     placeholder?: string;
     icon?: React.ReactNode;
+    className?: string;
 }
 
-export const SearchableSelect: React.FC<SearchableSelectProps> = ({ options, value, onChange, placeholder, icon }) => {
+export const SearchableSelect: React.FC<SearchableSelectProps> = ({ options, value, onChange, placeholder, icon, className }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [search, setSearch] = useState('');
     const wrapperRef = useRef<HTMLDivElement>(null);
@@ -34,7 +35,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({ options, val
     const selectedOption = options.find(o => o.value === value);
 
     return (
-        <div className="relative" ref={wrapperRef}>
+        <div className={`relative ${className || ''}`} ref={wrapperRef}>
             <div
                 onClick={() => setIsOpen(!isOpen)}
                 className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none transition-all cursor-pointer flex items-center justify-between"

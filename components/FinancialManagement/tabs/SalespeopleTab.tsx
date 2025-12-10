@@ -120,9 +120,9 @@ export const SalespeopleTab: React.FC<SalespeopleTabProps> = ({
     const handleExport = (salesperson?: any) => {
         const result = exportCSV(distributions, salesperson?.id, salesperson?.name);
         if (result.success) {
-            showSuccess('CSV dosyası başarıyla indirildi');
+            showSuccess('Başarılı', 'CSV dosyası başarıyla indirildi');
         } else {
-            showError(result.error || 'CSV oluşturulurken hata oluştu');
+            showError('Hata', result.error || 'CSV oluşturulurken hata oluştu');
         }
     };
 
