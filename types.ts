@@ -43,14 +43,18 @@ export interface CustomerNote {
 export interface Customer {
   id: string;
   customerNo: string; // Unique CRM ID
-  type: CustomerType;
-  customerType?: CustomerType; // NEW: Database field (same as type)
-  tcKn: string; // TC or Vergi No (legacy)
-  tcNo?: string; // NEW: Bireysel için TC (11 hane)
-  vkn?: string;  // NEW: Kurumsal için VKN (10 hane)
+  // Customer type - UPPERCASE only
+  customerType: 'BIREYSEL' | 'KURUMSAL';
+
+  // TC/VKN Fields - Mutually exclusive
+  tcNo?: string; // Bireysel için TC Kimlik No (11 hane)
+  vkn?: string;  // Kurumsal için Vergi No (10 hane)
+
   fullName: string; // Ad Soyad or Unvan
   name?: string; // Alias for fullName
-  contactPerson?: string; // For corporate customers
+
+  // Contact person - KURUMSAL only
+  contactPersonId?: string; // Foreign key to customers(id)
   email: string;
   phone: string;
   address?: string;
@@ -69,6 +73,12 @@ export interface Customer {
   createdAt: string;
   activePoliciesCount?: number;
   policies?: Policy[];
+
+  // DEPRECATED Fields - For backward compatibility during refactor
+  // TODO: Remove these after full refactor
+  type?: 'Bireysel' | 'Kurumsal'; // DEPRECATED - use customerType
+  tcKn?: string; // DEPRECATED - use tcNo or vkn
+  contactPerson?: string | Partial<Customer>; // DEPRECATED - use contactPersonId, can be string or nested object
 }
 
 export interface QuoteOffer {
@@ -83,30 +93,27 @@ export interface QuoteOffer {
 
 export interface Policy {
   id: string;
-  customerId?: string; // Link to customer
-  companyId?: string;
   policyNo: string;
-  type: InsuranceType;  // Legacy type (dropdown string)
-
-  // NEW: Product standardization
-  productId?: string;
-  categoryId?: string;
-  product?: InsuranceProduct;
-  category?: InsuranceCategory;
-
+  customerId?: string;
   customerName: string;
+  companyId?: string;
   company: string;
+  companyLogo?: string;
+  type: InsuranceType;
+  productName?: string; // Product name from insurance_products
   startDate: string;
   endDate: string;
   premium: number;
-  status: 'Active' | 'Expired' | 'Cancelled' | 'Potential';
   commissionAmount?: number;
-  companyLogo?: string;
-
+  status: 'Active' | 'Expired' | 'Cancelled' | 'Potential';
   description?: string;
-  salespersonId?: string;
-  salespersonName?: string;
-  plate?: string;
+  salespersonId?: string | null;
+  categoryId?: string;
+  productId?: string;
+  daysLeft?: number; // Used for frontend sorting
+  renewalDate?: string;
+  tags?: string[];
+  notes?: string;
 }
 
 export interface DashboardStats {

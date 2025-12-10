@@ -124,13 +124,16 @@ export const Policies: React.FC<PoliciesProps> = ({ onNavigate }) => {
 
   const fetchDropdowns = async () => {
     try {
-      const { data: customersData } = await supabase.from('customers').select('id, full_name, tc_kn');
+      const { data: customersData } = await supabase.from('customers').select('id, full_name, customer_type, tc_no, vkn');
       // Fetch all companies but we will filter them in the UI or fetch only active
       const { data: companiesData } = await supabase.from('settings_companies').select('id, name, is_active');
       const { data: usersData } = await supabase.from('settings_users').select('id, full_name, role, roles');
 
       if (customersData) {
-        setCustomers(customersData.sort((a, b) => a.full_name.localeCompare(b.full_name, 'tr')));
+        setCustomers(customersData.map(c => ({
+          ...c,
+          tcNo: c.tc_no  // Map DB tc_no → TypeScript tcNo
+        })).sort((a, b) => a.full_name.localeCompare(b.full_name, 'tr')));
       }
       if (companiesData) {
         setCompanies(companiesData.sort((a, b) => a.name.localeCompare(b.name, 'tr')));
@@ -181,7 +184,8 @@ export const Policies: React.FC<PoliciesProps> = ({ onNavigate }) => {
           .select(`
             *,
             customer: customers(full_name),
-            company: settings_companies(name, logo)
+            company: settings_companies(name, logo),
+            product: insurance_products(id, name_tr, category_id)
           `)
           .order('end_date', { ascending: true })
           .range(from, from + step - 1);
@@ -208,6 +212,7 @@ export const Policies: React.FC<PoliciesProps> = ({ onNavigate }) => {
         customerName: p.customer?.full_name || 'Bilinmeyen Müşteri',
         company: p.company?.name || 'Bilinmeyen Şirket',
         type: p.type as InsuranceType,
+        productName: p.product?.name_tr || p.type || 'Diğer',  // Use product name if available
         startDate: p.start_date,
         endDate: p.end_date,
         premium: p.premium || 0,
@@ -395,11 +400,13 @@ export const Policies: React.FC<PoliciesProps> = ({ onNavigate }) => {
         }
 
         // Fetch all existing customers to minimize DB calls
-        const { data: existingCustomersData } = await supabase.from('customers').select('id, tc_kn, full_name');
+        const { data: existingCustomersData } = await supabase.from('customers').select('id, customer_type, tc_no, vkn, full_name');
         const existingCustomersMap = new Map();
 
         existingCustomersData?.forEach(c => {
-          if (c.tc_kn) existingCustomersMap.set(c.tc_kn.trim(), c.id);
+          // Map by TC/VKN for duplicate detection
+          if (c.tc_no) existingCustomersMap.set(c.tc_no.trim(), c.id);
+          if (c.vkn) existingCustomersMap.set(c.vkn.trim(), c.id);
           existingCustomersMap.set(c.full_name.trim().toLocaleLowerCase('tr-TR'), c.id);
         });
 
@@ -916,7 +923,7 @@ export const Policies: React.FC<PoliciesProps> = ({ onNavigate }) => {
                             const category = categories.find(c => c.id === policy.categoryId);
                             if (category) return <div className="font-medium text-slate-800 dark:text-white text-sm">{category.name_tr}</div>;
 
-                            return <div className="font-medium text-slate-800 dark:text-white text-sm">{policy.type}</div>;
+                            return <div className="font-medium text-slate-800 dark:text-white text-sm">{policy.productName || policy.type}</div>;
                           })()}
                           <div className="font-mono text-[10px] text-slate-400">{policy.policyNo}</div>
                         </div>
@@ -1220,7 +1227,7 @@ export const Policies: React.FC<PoliciesProps> = ({ onNavigate }) => {
                           </button>
                         </div>
                         <SearchableSelect
-                          options={customers.map(c => ({ value: c.id, label: `${c.full_name} ${c.tc_kn ? `(${c.tc_kn})` : ''}` }))}
+                          options={customers.map(c => ({ value: c.id, label: `${c.full_name} ${(c.tcNo || c.vkn) ? `(${c.tcNo || c.vkn})` : ''}` }))}
                           value={newPolicy.customerId}
                           onChange={(val) => setNewPolicy({ ...newPolicy, customerId: val })}
                           placeholder="Müşteri Seçin..."

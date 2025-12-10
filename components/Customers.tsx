@@ -83,6 +83,7 @@ export const Customers: React.FC<CustomersProps> = ({ onNavigate }) => {
         .from('customers')
         .select(`
   *,
+  contact_person_rel:contact_person_id(id, full_name, tc_no, vkn),
   assets: customer_assets(*),
     notes: customer_notes(*),
       family_group: family_groups(*),
@@ -95,10 +96,22 @@ export const Customers: React.FC<CustomersProps> = ({ onNavigate }) => {
       const formattedData: Customer[] = (data || []).map((c: any) => ({
         id: c.id,
         customerNo: c.customer_no,
-        type: c.type,
-        tcKn: c.tc_kn,
+        customerType: c.customer_type as 'BIREYSEL' | 'KURUMSAL',
+
+        // TC/VKN Field Mapping
+        tcNo: c.tc_no,
+        vkn: c.vkn,
+
+        // Contact person
+        contactPersonId: c.contact_person_id,
+        contactPerson: c.contact_person_rel ? {
+          id: c.contact_person_rel.id,
+          fullName: c.contact_person_rel.full_name,
+          tcNo: c.contact_person_rel.tc_no,
+          vkn: c.contact_person_rel.vkn
+        } as any : undefined,
+
         fullName: c.full_name,
-        contactPerson: c.contact_person,
         email: c.email,
         phone: c.phone,
         riskScore: c.risk_score,
@@ -215,7 +228,7 @@ export const Customers: React.FC<CustomersProps> = ({ onNavigate }) => {
 
   // --- FORM STATES ---
   const [newCustomer, setNewCustomer] = useState<Partial<Customer>>({
-    type: 'Bireysel', riskScore: 10, tags: []
+    type: 'Bireysel', customerType: 'BIREYSEL', riskScore: 10, tags: []
   });
   const [newAsset, setNewAsset] = useState<Partial<CustomerAsset>>({ type: 'Araç' });
   const [assetDisplayValue, setAssetDisplayValue] = useState('');
@@ -248,7 +261,7 @@ export const Customers: React.FC<CustomersProps> = ({ onNavigate }) => {
         (c.plate?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
         (c.phone || '').includes(searchTerm);
       const matchesFamily = filterFamilyId === 'All' || c.familyGroupId === filterFamilyId;
-      const matchesType = filterType === 'All' || c.type === filterType;
+      const matchesType = filterType === 'All' || c.customerType === filterType.toUpperCase() || c.type === filterType;
 
       // Alphabet Filter
       const matchesLetter = !selectedLetter || c.fullName.trim().toUpperCase().startsWith(selectedLetter);
@@ -294,7 +307,12 @@ export const Customers: React.FC<CustomersProps> = ({ onNavigate }) => {
   };
 
   const openEditCustomerModal = (customer: Customer) => {
-    setNewCustomer({ ...customer });
+    // Map tc_no/vkn to tcKn for form display
+    setNewCustomer({
+      ...customer,
+      type: customer.customerType === 'BIREYSEL' ? 'Bireysel' : 'Kurumsal',
+      tcKn: customer.tcNo || customer.vkn || ''  // Fallback for old records
+    });
     setEditingCustomerId(customer.id);
     setIsCustomerModalOpen(true);
   };
@@ -313,19 +331,23 @@ export const Customers: React.FC<CustomersProps> = ({ onNavigate }) => {
 
     const customerData = {
       customer_no: editingCustomerId ? undefined : `GH-${Math.floor(1000 + Math.random() * 9000)}`,
-      type: newCustomer.type,
-      customer_type: newCustomer.type, // NEW: Also store in customer_type field
-      tc_kn: newCustomer.tcKn,  // Legacy field
-      tc_no: newCustomer.tcNo,  // NEW: Bireysel için TC
-      vkn: newCustomer.vkn,      // NEW: Kurumsal için VKN  
-      tax_office: newCustomer.taxOffice, // NEW: Vergi dairesi
+      customer_type: newCustomer.type?.toUpperCase(),  // BIREYSEL or KURUMSAL
+      // Map tcKn to correct field based on type
+      tc_no: newCustomer.type === 'Bireysel' ? newCustomer.tcKn : null,  // Bireysel için TC
+      vkn: newCustomer.type === 'Kurumsal' ? newCustomer.tcKn : null,    // Kurumsal için VKN
+      contact_person_id: newCustomer.type === 'Kurumsal' ? newCustomer.contactPersonId : null, // Kurumsal için yetkili
+      tax_office: newCustomer.taxOffice,
       full_name: newCustomer.fullName,
-      contact_person: newCustomer.contactPerson,
       email: newCustomer.email,
       phone: newCustomer.phone,
       risk_score: newCustomer.riskScore,
       family_group_id: newCustomer.familyGroupId || null,
     };
+
+    // DEBUG: Log data being sent
+    console.log('🔍 Customer Data to Save:', customerData);
+    console.log('📝 Customer Type:', customerData.customer_type);
+    console.log('🆔 TC/VKN:', customerData.tc_no || customerData.vkn);
 
     try {
       if (editingCustomerId) {
@@ -337,7 +359,7 @@ export const Customers: React.FC<CustomersProps> = ({ onNavigate }) => {
       }
       await fetchCustomers();
       setIsCustomerModalOpen(false);
-      setNewCustomer({ type: 'Bireysel', riskScore: 10, tags: [] });
+      setNewCustomer({ type: 'Bireysel', customerType: 'BIREYSEL', riskScore: 10, tags: [] });
       setEditingCustomerId(null);
       showSuccess('Başarılı', editingCustomerId ? 'Müşteri güncellendi.' : 'Yeni müşteri eklendi.');
     } catch (error) {
@@ -654,10 +676,10 @@ export const Customers: React.FC<CustomersProps> = ({ onNavigate }) => {
                 <div className="bg-slate-50 dark:bg-slate-800 p-5 rounded-xl border border-slate-100 dark:border-slate-700">
                   <h3 className="font-semibold text-slate-800 dark:text-white mb-4 flex items-center"><User className="w-4 h-4 mr-2" /> İletişim Bilgileri</h3>
                   <div className="space-y-3">
-                    {selectedCustomer.contactPerson && <div className="flex justify-between py-2 border-b border-slate-200 dark:border-slate-700"><span className="text-slate-500 text-sm">Yetkili</span><span className="font-medium text-slate-800 dark:text-white">{selectedCustomer.contactPerson}</span></div>}
+                    {(selectedCustomer.customerType === 'KURUMSAL' && selectedCustomer.contactPerson && typeof selectedCustomer.contactPerson !== 'string') && <div className="flex justify-between py-2 border-b border-slate-200 dark:border-slate-700"><span className="text-slate-500 text-sm">Yetkili Kişi</span><span className="font-medium text-slate-800 dark:text-white">{selectedCustomer.contactPerson.fullName}</span></div>}
                     <div className="flex justify-between py-2 border-b border-slate-200 dark:border-slate-700"><span className="text-slate-500 text-sm">Telefon</span><div className="flex items-center gap-2"><span className="font-medium text-slate-800 dark:text-white">{selectedCustomer.phone}</span></div></div>
                     <div className="flex justify-between py-2 border-b border-slate-200 dark:border-slate-700"><span className="text-slate-500 text-sm">E-Posta</span><span className="font-medium text-slate-800 dark:text-white">{selectedCustomer.email}</span></div>
-                    <div className="flex justify-between py-2 border-b border-slate-200 dark:border-slate-700"><span className="text-slate-500 text-sm">TC / Vergi No</span><span className="font-medium font-mono text-slate-800 dark:text-white">{selectedCustomer.tcKn}</span></div>
+                    <div className="flex justify-between py-2 border-b border-slate-200 dark:border-slate-700"><span className="text-slate-500 text-sm">TC / Vergi No</span><span className="font-medium font-mono text-slate-800 dark:text-white">{selectedCustomer.tcNo || selectedCustomer.vkn || '-'}</span></div>
                   </div>
                 </div>
                 {/* Tags */}
@@ -983,16 +1005,16 @@ export const Customers: React.FC<CustomersProps> = ({ onNavigate }) => {
                     className="hover:bg-slate-50 dark:hover:bg-slate-700/30 cursor-pointer transition-colors group"
                   >
                     <td className="px-4 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className={`flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center ${customer.type === 'Bireysel'
-                          ? 'bg-blue-50 text-brand-primary dark:bg-blue-900/20 dark:text-blue-400'
-                          : 'bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400'
-                          } `}>
-                          {customer.type === 'Bireysel' ? <User className="h-5 w-5" /> : <Building2 className="h-5 w-5" />}
+                      <div className="flex items-center gap-4">
+                        <div className={`flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center ${(customer.customerType === 'BIREYSEL' || customer.type === 'Bireysel')
+                          ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                          : 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
+                          }`}>
+                          {(customer.customerType === 'BIREYSEL' || customer.type === 'Bireysel') ? <User className="h-5 w-5" /> : <Building2 className="h-5 w-5" />}
                         </div>
                         <div className="ml-4">
                           <div className="text-sm font-bold text-slate-900 dark:text-white">{customer.fullName}</div>
-                          <div className="text-xs text-slate-500 dark:text-slate-400">{customer.tcKn}</div>
+                          <div className="text-xs text-slate-500 dark:text-slate-400">{customer.tcNo || customer.vkn || '-'}</div>
                         </div>
                       </div>
                     </td>
@@ -1221,13 +1243,12 @@ export const Customers: React.FC<CustomersProps> = ({ onNavigate }) => {
                     <div className="flex-1">
                       <SearchableSelect
                         options={customers
-                          .filter(c => c.type === 'Bireysel')
-                          .map(c => ({ value: c.id, label: `${c.fullName} (${c.tcKn || 'TC Yok'})` }))
+                          .filter(c => c.customerType === 'BIREYSEL' || c.type === 'Bireysel')  // Support both new and legacy
+                          .map(c => ({ value: c.id, label: `${c.fullName} (${c.tcNo || c.vkn || c.tcKn || 'TC Yok'})` }))
                           .sort((a, b) => a.label.localeCompare(b.label, 'tr-TR'))}
-                        value={customers.find(c => c.fullName === newCustomer.contactPerson)?.id || ''}
+                        value={newCustomer.contactPersonId || customers.find(c => c.fullName === newCustomer.contactPerson)?.id || ''}
                         onChange={(val) => {
-                          const selected = customers.find(c => c.id === val);
-                          if (selected) setNewCustomer({ ...newCustomer, contactPerson: selected.fullName });
+                          setNewCustomer({ ...newCustomer, contactPersonId: val });
                         }}
                         placeholder={newCustomer.contactPerson || "Seçiniz..."}
                         className="w-full"
