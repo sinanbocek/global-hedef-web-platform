@@ -1250,7 +1250,7 @@ export const Customers: React.FC<CustomersProps> = ({ onNavigate }) => {
                         onChange={(val) => {
                           setNewCustomer({ ...newCustomer, contactPersonId: val });
                         }}
-                        placeholder={newCustomer.contactPerson || "Seçiniz..."}
+                        placeholder={typeof newCustomer.contactPerson === 'string' ? newCustomer.contactPerson : "Seçiniz..."}
                         className="w-full"
                       />
                     </div>

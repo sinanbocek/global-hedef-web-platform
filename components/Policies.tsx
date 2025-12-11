@@ -57,7 +57,7 @@ export const Policies: React.FC<PoliciesProps> = ({ onNavigate }) => {
   // Add Policy Modal State
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingPolicyId, setEditingPolicyId] = useState<string | null>(null);
-  const [customers, setCustomers] = useState<{ id: string, full_name: string, tc_kn?: string }[]>([]);
+  const [customers, setCustomers] = useState<{ id: string; full_name: string; customer_type?: string; tcNo?: string; vkn?: string; }[]>([]);
   // Store companies with their active status for filtering logic
   const [companies, setCompanies] = useState<{ id: string, name: string, is_active: boolean }[]>([]);
   const [users, setUsers] = useState<{ id: string, full_name: string, role?: string, roles?: string[] }[]>([]);
@@ -125,14 +125,14 @@ export const Policies: React.FC<PoliciesProps> = ({ onNavigate }) => {
   const fetchDropdowns = async () => {
     try {
       const { data: customersData } = await supabase.from('customers').select('id, full_name, customer_type, tc_no, vkn');
-      // Fetch all companies but we will filter them in the UI or fetch only active
       const { data: companiesData } = await supabase.from('settings_companies').select('id, name, is_active');
       const { data: usersData } = await supabase.from('settings_users').select('id, full_name, role, roles');
 
       if (customersData) {
         setCustomers(customersData.map(c => ({
           ...c,
-          tcNo: c.tc_no  // Map DB tc_no → TypeScript tcNo
+          tcNo: c.tc_no,  // Map DB tc_no → TypeScript tcNo
+          vkn: c.vkn      // Map DB vkn → TypeScript vkn
         })).sort((a, b) => a.full_name.localeCompare(b.full_name, 'tr')));
       }
       if (companiesData) {
@@ -635,8 +635,7 @@ export const Policies: React.FC<PoliciesProps> = ({ onNavigate }) => {
       const matchesSearch =
         policy.policyNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
         policy.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (policy.company && policy.company.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (policy.plate && policy.plate.toLowerCase().includes(searchTerm.toLowerCase()));
+        (policy.company && policy.company.toLowerCase().includes(searchTerm.toLowerCase()));
 
       const matchesStatus = filterStatus === 'All' || derivedStatus === filterStatus;
 
