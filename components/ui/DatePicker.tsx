@@ -19,6 +19,21 @@ export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, placeho
     // Initialize viewDate from value if present
     useEffect(() => {
         if (value) {
+            // Manual parsing to ensure Local Midnight logic (avoid UTC offsets)
+            const parts = value.split('-');
+            if (parts.length === 3) {
+                const y = parseInt(parts[0]);
+                const m = parseInt(parts[1]) - 1; // 0-indexed
+                const d = parseInt(parts[2]);
+                const date = new Date(y, m, d);
+                // Validate
+                if (!isNaN(date.getTime()) && date.getDate() === d) {
+                    setViewDate(date);
+                    return;
+                }
+            }
+
+            // Fallback for other formats (ISO with time etc)
             const date = new Date(value);
             if (!isNaN(date.getTime())) {
                 setViewDate(date);

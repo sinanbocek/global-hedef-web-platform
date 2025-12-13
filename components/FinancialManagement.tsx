@@ -10,6 +10,7 @@ import {
 } from '../types';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../context/ToastContext';
+import { DatePicker } from './ui/DatePicker';
 
 type FinancialTab = 'dashboard' | 'distributions' | 'partners' | 'salespeople' | 'treasury' | 'payments';
 

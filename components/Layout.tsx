@@ -128,7 +128,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, activePage, onNavigate
               {!isCollapsed && <p className="px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">YÖNETİM</p>}
               <NavItem id="financial" label="Bilanço & Prim" icon={TrendingUp} active={activePage} onClick={(page) => { onNavigate(page); navigate('/financial'); }} collapsed={isCollapsed} />
               <NavItem id="settings" label="Ayarlar" icon={Settings} active={activePage} onClick={(page) => { onNavigate(page); navigate('/settings'); }} collapsed={isCollapsed} />
-              <NavItem id="import" label="Veri Aktar" icon={Upload} active={activePage} onClick={(page) => { onNavigate(page); navigate('/import'); }} collapsed={isCollapsed} />
+
             </div>
           </nav>
 

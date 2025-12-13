@@ -74,11 +74,6 @@ export interface Customer {
   activePoliciesCount?: number;
   policies?: Policy[];
 
-  // DEPRECATED Fields - For backward compatibility during refactor
-  // TODO: Remove these after full refactor
-  type?: 'Bireysel' | 'Kurumsal'; // DEPRECATED - use customerType
-  tcKn?: string; // DEPRECATED - use tcNo or vkn
-  contactPerson?: string | Partial<Customer>; // DEPRECATED - use contactPersonId, can be string or nested object
 }
 
 export interface QuoteOffer {
@@ -154,7 +149,7 @@ export interface BankAccount {
   iban: string;
   currency: 'TL' | 'USD' | 'EUR' | 'GBP' | 'CHF';
   accountName?: string;
-  balance?: number;
+
   accountType?: string;
 }
 
@@ -395,6 +390,7 @@ export interface CommissionPayment {
   status: 'pending' | 'paid' | 'cancelled';
   payment_method?: string;
   payment_description?: string;
+  description?: string;
   created_at: string;
 }
 

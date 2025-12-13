@@ -9,7 +9,7 @@ import { AIChatAssistant } from './components/AIChatAssistant';
 import { Analysis } from './components/Analysis';
 import { Customers } from './components/Customers';
 import { Policies } from './components/Policies';
-import { SystemAnatomy } from './components/SystemAnatomy';
+
 import { FinancialManagement } from './components/FinancialManagement/FinancialManagement';
 import { DataImport } from './components/DataImport';
 import { ToastProvider } from './contexts/ToastContext';
@@ -38,7 +38,7 @@ const App: React.FC = () => {
       case 'settings': return <Settings onNavigate={setCurrentPage} />;
       case 'financial': return <FinancialManagement />;
       case 'import': return <DataImport />;
-      case 'anatomy': return <SystemAnatomy />;
+
       default: return <Dashboard />;
     }
   };

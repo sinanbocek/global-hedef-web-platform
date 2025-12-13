@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, FileSpreadsheet, CheckCircle, AlertTriangle, X, Download, Database, Loader2, Info, Eye, Edit2, Check, ArrowRight } from 'lucide-react';
+import { Upload, FileSpreadsheet, CheckCircle, AlertTriangle, X, Download, Database, Loader2, Info, Eye, Edit2, Check, ArrowRight, XCircle } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../context/ToastContext';
@@ -489,6 +489,7 @@ function parseDate(val: any): string | null {
 
 // ==================== MAIN COMPONENT ====================
 
+// HMR Trigger: Last Edit Check
 export const DataImport: React.FC = () => {
     const [file, setFile] = useState<File | null>(null);
     const [preview, setPreview] = useState<any[]>([]);
@@ -507,6 +508,13 @@ export const DataImport: React.FC = () => {
         companies: Array<{ id: string; name: string }>;
         products: Array<{ id: string; name_tr: string; code: string; aliases?: string[]; category?: any }>;
     } | null>(null);
+
+    // Editing State
+    const [isEditing, setIsEditing] = useState(false);
+    const [editedData, setEditedData] = useState<any[]>([]);
+
+    // Import Logs State
+    const [importLogs, setImportLogs] = useState<Array<{ type: 'success' | 'error', message: string, customer: string }>>([]);
 
     const { showSuccess, showError } = useToast();
 
@@ -570,13 +578,12 @@ export const DataImport: React.FC = () => {
             const { data: users, error: usersError } = await supabase.from('settings_users').select('id, full_name');
             const { data: companies, error: companiesError } = await supabase.from('settings_companies').select('id, name');
             const { data: products, error: productsError } = await supabase.from('insurance_products').select(`
-                id, 
-                name_tr, 
-                code, 
-                aliases, 
+                id,
+                name_tr,
+                code,
+                aliases,
                 category:insurance_categories(id, name_tr)
             `);
-
 
             // Debug logging
             console.log('📊 Reference Data Fetched:');
@@ -587,63 +594,92 @@ export const DataImport: React.FC = () => {
             console.log('  Companies:', companies?.length || 0, companiesError ? `(Error: ${companiesError.message})` : '');
             console.log('  Products:', products?.length || 0, productsError ? `(Error: ${productsError.message})` : '');
 
-            setReferenceData({
+            const references = {
                 users: users || [],
                 companies: companies || [],
                 products: products || []
-            });
+            };
 
-            // Perform smart matching
-            const salespeopleSet = new Set<string>();
-            const companiesSet = new Set<string>();
-            const productsSet = new Set<string>();
+            setReferenceData(references);
 
-            normalized.forEach(row => {
-                if (row['SATIŞÇI']) salespeopleSet.add(row['SATIŞÇI']);
-                if (row['ŞİRKET']) companiesSet.add(row['ŞİRKET']);
-                if (row['POLİÇE TÜRÜ']) productsSet.add(row['POLİÇE TÜRÜ']);
-            });
-
-            const salespeopleMap = new Map<string, MatchResult>();
-            const companiesMap = new Map<string, MatchResult>();
-            const productsMap = new Map<string, MatchResult>();
-
-            salespeopleSet.forEach(sp => {
-                const matchResult = matchSalesperson(sp, users || []);
-                console.log(`👤 Matching "${sp}":`, JSON.stringify({
-                    excelValue: matchResult.excelValue,
-                    matchedId: matchResult.matchedId,
-                    matchedName: matchResult.matchedName,
-                    confidence: matchResult.confidence,
-                    suggestionsCount: matchResult.suggestions.length
-                }, null, 2));
-                salespeopleMap.set(sp, matchResult);
-            });
-
-            companiesSet.forEach(comp => {
-                companiesMap.set(comp, matchCompany(comp, companies || []));
-            });
-
-            productsSet.forEach(prod => {
-                productsMap.set(prod, matchProduct(prod, products || []));
-            });
-
-            setMappingPreview({
-                salespeople: salespeopleMap,
-                companies: companiesMap,
-                products: productsMap
-            });
-
-            // Validate rows
-            const results = await Promise.all(normalized.map(validateRow));
-            setValidationResults(results);
+            // Analyze data
+            await analyzeAndSetData(normalized, references);
 
             showSuccess('Başarılı', `${normalized.length} satır yüklendi ve analiz edildi`);
-            setShowMappingPreview(true); // Show mapping preview modal
         } catch (error: any) {
             showError('Hata', error.message || 'Excel dosyası okunamadı');
         }
     };
+
+    const analyzeAndSetData = async (data: any[], refs: any) => {
+        // Perform smart matching
+        const salespeopleSet = new Set<string>();
+        const companiesSet = new Set<string>();
+        const productsSet = new Set<string>();
+
+        data.forEach(row => {
+            if (row['SATIŞÇI']) salespeopleSet.add(row['SATIŞÇI']);
+            if (row['ŞİRKET']) companiesSet.add(row['ŞİRKET']);
+            if (row['POLİÇE TÜRÜ']) productsSet.add(row['POLİÇE TÜRÜ']);
+        });
+
+        const salespeopleMap = new Map<string, MatchResult>();
+        const companiesMap = new Map<string, MatchResult>();
+        const productsMap = new Map<string, MatchResult>();
+
+        salespeopleSet.forEach(sp => {
+            const matchResult = matchSalesperson(sp, refs.users || []);
+            salespeopleMap.set(sp, matchResult);
+        });
+
+        companiesSet.forEach(comp => {
+            companiesMap.set(comp, matchCompany(comp, refs.companies || []));
+        });
+
+        productsSet.forEach(prod => {
+            productsMap.set(prod, matchProduct(prod, refs.products || []));
+        });
+
+        setMappingPreview({
+            salespeople: salespeopleMap,
+            companies: companiesMap,
+            products: productsMap
+        });
+
+        // Validate rows
+        const results = await Promise.all(data.map(validateRow));
+        setValidationResults(results);
+        setShowMappingPreview(true);
+    };
+
+
+
+    const handleEditData = () => {
+        setEditedData([...normalizedData]); // Clone data for editing
+        setIsEditing(true);
+        setShowMappingPreview(false); // Hide preview while editing
+    };
+
+    const handleSaveEdit = async () => {
+        setNormalizedData(editedData);
+        setIsEditing(false);
+        // Re-analyze with new data
+        if (referenceData) {
+            await analyzeAndSetData(editedData, referenceData);
+        }
+    };
+
+    const handleCancelEdit = () => {
+        setIsEditing(false);
+        setShowMappingPreview(true); // Return to preview
+    };
+
+    const handleCellChange = (rowIndex: number, field: string, value: string) => {
+        const newData = [...editedData];
+        newData[rowIndex] = { ...newData[rowIndex], [field]: value };
+        setEditedData(newData);
+    };
+
 
     const validateRow = async (row: ExcelRow): Promise<ValidationResult> => {
         const errors: string[] = [];
@@ -673,6 +709,16 @@ export const DataImport: React.FC = () => {
             }
         }
 
+        // Log validation errors
+        if (errors.length > 0) {
+            const customerName = row['MÜŞTERİ'] || 'Bilinmeyen Müşteri';
+            setImportLogs(prev => [...prev, {
+                type: 'error',
+                customer: customerName,
+                message: `Validation Hatası: ${errors.join(', ')}`
+            }]);
+        }
+
         return {
             valid: errors.length === 0,
             errors,
@@ -695,6 +741,7 @@ export const DataImport: React.FC = () => {
         try {
             setImporting(true);
             setProgress(0);
+            setImportLogs([]); // Clear previous logs
             const validRows = validationResults.filter(r => r.valid);
 
             if (validRows.length === 0) {
@@ -773,7 +820,7 @@ export const DataImport: React.FC = () => {
                     // Create new customer if not found
                     if (!customerId) {
                         const customerTypeEnum = isCorporate ? 'KURUMSAL' : 'BIREYSEL';
-                        const validContactPersonId = isCorporate ? '0ffc8633-df51-41f0-b93e-8caca5c55d26' : null; // "Kontak Kişi Bulunamadı" from users table is NOT valid here, must be from CUSTOMERS table if constraint refers to it, but likely it refers to customers. Wait, the constraint checked earlier was likely foreign key to customers. Let's use the ID we found in customers table: 0ffc8633-df51-41f0-b93e-8caca5c55d26
+                        const validContactPersonId = null; // Contact person can be set later via UI
 
                         const { data: newCust, error: custErr } = await supabase
                             .from('customers')
@@ -839,11 +886,27 @@ export const DataImport: React.FC = () => {
                         });
 
                     if (polErr) throw polErr;
+
+                    setImportLogs(prev => [...prev, {
+                        type: 'success',
+                        customer: customerName,
+                        message: `Poliçe ${policyNumber} başarıyla eklendi`
+                    }]);
+
                     return { success: true };
                 } catch (error: any) {
+                    const row = result.data;
+                    const customerName = row['MÜŞTERİ'] || 'Bilinmeyen';
                     let msg = error.message;
                     if (msg.includes('end_date') && msg.includes('null')) msg = 'Bitiş Tarihi geçersiz';
                     if (msg.includes('start_date') && msg.includes('null')) msg = 'Başlangıç Tarihi geçersiz';
+
+                    setImportLogs(prev => [...prev, {
+                        type: 'error',
+                        customer: customerName,
+                        message: msg
+                    }]);
+
                     return { success: false, error: `${result.data['MÜŞTERİ']}: ${msg}` };
                 }
             };
@@ -1056,10 +1119,11 @@ export const DataImport: React.FC = () => {
 
                         <div className="p-6 border-t border-slate-200 dark:border-slate-700 flex gap-4 justify-end">
                             <button
-                                onClick={() => setShowMappingPreview(false)}
-                                className="px-6 py-3 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg hover:bg-slate-300 transition-colors"
+                                onClick={handleEditData}
+                                className="px-6 py-3 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors flex items-center gap-2"
                             >
-                                ✏️ Düzenle (Gelecek)
+                                <Edit2 className="w-5 h-5" />
+                                Verileri Düzenle
                             </button>
                             <button
                                 onClick={handleMappingApproval}
@@ -1068,6 +1132,131 @@ export const DataImport: React.FC = () => {
                                 <Check className="w-5 h-5" />
                                 Onaylıyorum - Devam Et
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Data Editor Modal */}
+            {isEditing && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-[95vw] h-[90vh] flex flex-col border border-slate-200 dark:border-slate-700">
+                        <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between bg-slate-50 dark:bg-slate-900/50 rounded-t-xl">
+                            <div>
+                                <h2 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                                    <Edit2 className="w-6 h-6 text-blue-600" />
+                                    Verileri Düzenle
+                                </h2>
+                                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                                    {editedData.length} satır veriyi manuel olarak düzenliyorsunuz
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={handleCancelEdit}
+                                    className="px-4 py-2 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                                >
+                                    İptal
+                                </button>
+                                <button
+                                    onClick={handleSaveEdit}
+                                    className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 shadow-lg hover:shadow-green-900/20"
+                                >
+                                    <Check className="w-4 h-4" />
+                                    Değişiklikleri Kaydet ve Analiz Et
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="flex-1 overflow-auto p-0">
+                            <table className="w-full text-sm border-collapse">
+                                <thead className="bg-slate-50 dark:bg-slate-900/50 sticky top-0 z-10 shadow-sm">
+                                    <tr>
+                                        <th className="p-3 text-left font-semibold text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700 w-12">#</th>
+                                        <th className="p-3 text-left font-semibold text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700 min-w-[200px]">Müşteri Adı</th>
+                                        <th className="p-3 text-left font-semibold text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700 w-32">TCKN/VKN</th>
+                                        <th className="p-3 text-left font-semibold text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700 w-24">Tür</th>
+                                        <th className="p-3 text-left font-semibold text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700 min-w-[150px]">Şirket</th>
+                                        <th className="p-3 text-left font-semibold text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700 min-w-[150px]">Poliçe Türü</th>
+                                        <th className="p-3 text-left font-semibold text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700 w-40">Poliçe No</th>
+                                        <th className="p-3 text-left font-semibold text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700 w-32">Başlangıç</th>
+                                        <th className="p-3 text-left font-semibold text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700 w-32">Bitiş</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                    {editedData.map((row, idx) => (
+                                        <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                            <td className="p-2 text-slate-500 text-center border-r border-slate-100 dark:border-slate-800">{idx + 1}</td>
+                                            <td className="p-1 border-r border-slate-100 dark:border-slate-800">
+                                                <input
+                                                    type="text"
+                                                    value={row['MÜŞTERİ'] || ''}
+                                                    onChange={(e) => handleCellChange(idx, 'MÜŞTERİ', e.target.value)}
+                                                    className="w-full px-2 py-1.5 bg-transparent focus:bg-white dark:focus:bg-slate-700 border border-transparent focus:border-blue-500 rounded outline-none transition-all"
+                                                />
+                                            </td>
+                                            <td className="p-1 border-r border-slate-100 dark:border-slate-800">
+                                                <input
+                                                    type="text"
+                                                    value={row['TCKN'] || ''}
+                                                    onChange={(e) => handleCellChange(idx, 'TCKN', e.target.value)}
+                                                    className="w-full px-2 py-1.5 bg-transparent focus:bg-white dark:focus:bg-slate-700 border border-transparent focus:border-blue-500 rounded outline-none transition-all font-mono"
+                                                />
+                                            </td>
+                                            <td className="p-1 border-r border-slate-100 dark:border-slate-800">
+                                                <select
+                                                    value={row['Müşteri Türü'] || 'Bireysel'}
+                                                    onChange={(e) => handleCellChange(idx, 'Müşteri Türü', e.target.value)}
+                                                    className="w-full px-2 py-1.5 bg-transparent focus:bg-white dark:focus:bg-slate-700 border border-transparent focus:border-blue-500 rounded outline-none transition-all"
+                                                >
+                                                    <option value="Bireysel">Bireysel</option>
+                                                    <option value="Kurumsal">Kurumsal</option>
+                                                </select>
+                                            </td>
+                                            <td className="p-1 border-r border-slate-100 dark:border-slate-800">
+                                                <input
+                                                    type="text"
+                                                    value={row['ŞİRKET'] || ''}
+                                                    onChange={(e) => handleCellChange(idx, 'ŞİRKET', e.target.value)}
+                                                    className="w-full px-2 py-1.5 bg-transparent focus:bg-white dark:focus:bg-slate-700 border border-transparent focus:border-blue-500 rounded outline-none transition-all"
+                                                />
+                                            </td>
+                                            <td className="p-1 border-r border-slate-100 dark:border-slate-800">
+                                                <input
+                                                    type="text"
+                                                    value={row['POLİÇE TÜRÜ'] || ''}
+                                                    onChange={(e) => handleCellChange(idx, 'POLİÇE TÜRÜ', e.target.value)}
+                                                    className="w-full px-2 py-1.5 bg-transparent focus:bg-white dark:focus:bg-slate-700 border border-transparent focus:border-blue-500 rounded outline-none transition-all"
+                                                />
+                                            </td>
+                                            <td className="p-1 border-r border-slate-100 dark:border-slate-800">
+                                                <input
+                                                    type="text"
+                                                    value={row['POLİÇE NUMARASI'] || ''}
+                                                    onChange={(e) => handleCellChange(idx, 'POLİÇE NUMARASI', e.target.value)}
+                                                    className="w-full px-2 py-1.5 bg-transparent focus:bg-white dark:focus:bg-slate-700 border border-transparent focus:border-blue-500 rounded outline-none transition-all font-mono"
+                                                />
+                                            </td>
+                                            <td className="p-1 border-r border-slate-100 dark:border-slate-800">
+                                                <input
+                                                    type="date"
+                                                    value={row['POLİÇE BAŞLANGIÇ'] ? parseDate(row['POLİÇE BAŞLANGIÇ']) || '' : ''}
+                                                    onChange={(e) => handleCellChange(idx, 'POLİÇE BAŞLANGIÇ', e.target.value)}
+                                                    className="w-full px-2 py-1.5 bg-transparent focus:bg-white dark:focus:bg-slate-700 border border-transparent focus:border-blue-500 rounded outline-none transition-all"
+                                                />
+                                            </td>
+                                            <td className="p-1 border-r border-slate-100 dark:border-slate-800">
+                                                <input
+                                                    type="date"
+                                                    value={row['POLİÇE BİTİŞ'] ? parseDate(row['POLİÇE BİTİŞ']) || '' : ''}
+                                                    onChange={(e) => handleCellChange(idx, 'POLİÇE BİTİŞ', e.target.value)}
+                                                    className="w-full px-2 py-1.5 bg-transparent focus:bg-white dark:focus:bg-slate-700 border border-transparent focus:border-blue-500 rounded outline-none transition-all"
+                                                />
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -1124,6 +1313,44 @@ export const DataImport: React.FC = () => {
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 text-center">
                         Lütfen bekleyiniz, sayfayı kapatmayın.
                     </p>
+                </div>
+            )}
+
+            {/* Import Logs Panel */}
+            {importLogs.length > 0 && (
+                <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-lg">
+                    <div className="flex items-center justify-between mb-3">
+                        <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Import Logları</span>
+                        <span className="text-xs text-slate-500">{importLogs.length} kayıt</span>
+                    </div>
+                    <div className="max-h-96 overflow-y-auto space-y-2 pr-2">
+                        {importLogs.map((log, idx) => (
+                            <div
+                                key={idx}
+                                className={`p-3 rounded-lg border ${log.type === 'success'
+                                    ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+                                    : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
+                                    }`}
+                            >
+                                <div className="flex items-start gap-2">
+                                    {log.type === 'success' ? (
+                                        <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                                    ) : (
+                                        <XCircle className="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                                    )}
+                                    <div className="flex-1 min-w-0">
+                                        <div className="text-xs font-medium text-slate-700 dark:text-slate-300">{log.customer}</div>
+                                        <div className={`text-xs ${log.type === 'success'
+                                            ? 'text-green-700 dark:text-green-400'
+                                            : 'text-red-700 dark:text-red-400'
+                                            }`}>
+                                            {log.message}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             )}
 

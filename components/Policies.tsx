@@ -9,6 +9,7 @@ import { supabase } from '../lib/supabase';
 import { MOCK_POLICIES } from '../constants';
 import * as XLSX from 'xlsx';
 
+import { PolicyFormModal } from './PolicyFormModal';
 import { SearchableSelect } from './ui/SearchableSelect';
 import { DatePicker } from './ui/DatePicker';
 import { useToast } from '../context/ToastContext';
@@ -68,7 +69,8 @@ export const Policies: React.FC<PoliciesProps> = ({ onNavigate }) => {
 
   // Add Policy Modal State
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [editingPolicyId, setEditingPolicyId] = useState<string | null>(null);
+  const [editingPolicy, setEditingPolicy] = useState<Policy | null>(null);
+
   const [customers, setCustomers] = useState<{ id: string; full_name: string; customer_type?: string; tcNo?: string; vkn?: string; }[]>([]);
   // Store companies with their active status for filtering logic
   const [companies, setCompanies] = useState<{ id: string, name: string, is_active: boolean }[]>([]);
@@ -79,24 +81,10 @@ export const Policies: React.FC<PoliciesProps> = ({ onNavigate }) => {
   const [products, setProducts] = useState<{ id: string, category_id: string, code: string, name_tr: string }[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<{ id: string, category_id: string, code: string, name_tr: string }[]>([]);
 
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
-  const [newPolicy, setNewPolicy] = useState({
-    customerId: '',
-    companyId: '',  // Insurance company
-    categoryId: '', // NEW
-    productId: '',  // NEW
-    type: 'Trafik Sigortası' as InsuranceType,
-    salespersonId: '',
-    policyNo: '',
-    startDate: new Date().toISOString().split('T')[0],
-    endDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
-    premium: 0,
-    commissionAmount: 0,
-    status: 'Active' as 'Active' | 'Potential',
-    description: ''
-  });
-
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+
+
   const { showSuccess, showError } = useToast();
 
   const formatCurrencyInput = (value: number) => {
@@ -250,125 +238,18 @@ export const Policies: React.FC<PoliciesProps> = ({ onNavigate }) => {
     }
   };
 
-  const resetForm = () => {
-    setNewPolicy({
-      customerId: '',
-      companyId: '',
-      categoryId: '',
-      productId: '',
-      type: 'Trafik Sigortası' as InsuranceType,
-      policyNo: '',
-      startDate: new Date().toISOString().split('T')[0],
-      endDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
-      premium: 0,
-      commissionAmount: 0,
-      status: 'Active' as 'Active' | 'Potential',
-      description: '',
-      salespersonId: ''
-    });
-    setDeleteConfirmId(null);
-    setEditingPolicyId(null);
-  };
-
   const openAddModal = () => {
-    resetForm();
+    setEditingPolicy(null);
     setIsAddModalOpen(true);
   };
 
   const openEditModal = (policy: Policy) => {
-    setEditingPolicyId(policy.id);
-    setNewPolicy({
-      customerId: policy.customerId || '',
-      companyId: policy.companyId || '',
-      categoryId: policy.categoryId || '',
-      productId: policy.productId || '',
-      type: policy.type,
-      policyNo: policy.policyNo,
-      startDate: policy.startDate,
-      endDate: policy.endDate,
-      premium: policy.premium,
-      commissionAmount: policy.commissionAmount || 0,
-      status: policy.status as any,
-      description: policy.description || '',
-      salespersonId: policy.salespersonId || ''
-    });
-
-    // Filter products based on the policy's categoryId
-    const sortedProducts = [...products].sort((a, b) => a.name_tr.localeCompare(b.name_tr, 'tr'));
-    if (policy.categoryId) {
-      setFilteredProducts(sortedProducts.filter(p => p.category_id === policy.categoryId));
-    } else {
-      setFilteredProducts(sortedProducts);
-    }
-
+    setEditingPolicy(policy);
     setIsAddModalOpen(true);
   };
 
-  const handleSavePolicy = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      let finalPolicyNo = newPolicy.policyNo;
 
-      // Auto-generate Policy No for Potential Policies if empty
-      if (newPolicy.status === 'Potential' && !finalPolicyNo) {
-        finalPolicyNo = `POT-${Date.now().toString().slice(-6)}`;
-      }
 
-      if (!finalPolicyNo) {
-        showError('Hata', 'Poliçe numarası zorunludur.');
-        return;
-      }
-
-      const policyData = {
-        policy_no: finalPolicyNo,
-        customer_id: newPolicy.customerId || null,
-        company_id: newPolicy.companyId || null,
-        product_id: newPolicy.productId || null,  // NEW
-        category_id: newPolicy.categoryId || null, // NEW
-        type: newPolicy.type,
-        start_date: newPolicy.startDate,
-        end_date: newPolicy.endDate,
-        premium: newPolicy.premium,
-        commission_amount: newPolicy.commissionAmount,
-        status: newPolicy.status,
-
-        description: newPolicy.description,
-        salesperson_id: newPolicy.salespersonId || null
-      };
-
-      if (editingPolicyId) {
-        const { error } = await supabase.from('policies').update(policyData).eq('id', editingPolicyId);
-        if (error) throw error;
-        showSuccess('Başarılı', 'Poliçe başarıyla güncellendi.');
-      } else {
-        const { error } = await supabase.from('policies').insert(policyData);
-        if (error) throw error;
-        showSuccess('Başarılı', 'Yeni poliçe oluşturuldu.');
-      }
-
-      setIsAddModalOpen(false);
-      fetchPolicies();
-      resetForm();
-    } catch (error) {
-      console.error("Error saving policy:", error);
-      const errorMessage = (error as any)?.message || (typeof error === 'string' ? error : JSON.stringify(error));
-      showError('Hata', errorMessage || 'Beklenmedik bir hata oluştu.');
-    }
-  };
-
-  const handleDeletePolicy = async (id: string) => {
-    // Initial confirmation handled by UI before calling this if needed, 
-    // but requirement is double confirm in details view.
-    // We will Implement a specific delete function for the modal.
-    try {
-      const { error } = await supabase.from('policies').delete().eq('id', id);
-      if (error) throw error;
-      showSuccess('Silindi', 'Poliçe başarıyla silindi.');
-      setIsAddModalOpen(false); // Close modal if open
-      setDeleteConfirmId(null);
-      fetchPolicies();
-    } catch (error) { showError('Hata', "Silme işlemi başarısız."); }
-  };
 
   // --- EXCEL IMPORT LOGIC ---
 
@@ -550,75 +431,11 @@ export const Policies: React.FC<PoliciesProps> = ({ onNavigate }) => {
               customer_id: customerId,
               company_id: matchedCompany.id,
               type: type,
-              product_id: productId, // Added
-              category_id: categoryId, // Added
-              start_date: startDate || new Date().toISOString().split('T')[0],
-              end_date: endDate || new Date().toISOString().split('T')[0],
-              premium: isNaN(premium) ? 0 : premium,
-              commission_amount: isNaN(commission) ? 0 : commission,
-              status: 'Active'
             });
 
-            if (insertError) {
-              console.warn("Insert error (duplicate?):", insertError.message);
-              // Don't count distinct error for duplicate policy usually
-            } else {
-              successCount++;
-
-              // --- AUTO-CREATE ASSETS BASED ON POLICY TYPE ---
-              // If we just added a Vehicle policy (Traffic/Kasko), ensure an Asset exists
-              if (type === InsuranceType.TRAFIK || type === InsuranceType.KASKO) {
-                const { data: existingAssets } = await supabase
-                  .from('customer_assets')
-                  .select('id')
-                  .eq('customer_id', customerId)
-                  .eq('type', 'Araç');
-
-                if (!existingAssets || existingAssets.length === 0) {
-                  await supabase.from('customer_assets').insert({
-                    customer_id: customerId,
-                    type: 'Araç',
-                    description: 'Otomatik Oluşturulan Araç',
-                    value: 0
-                  });
-                }
-              }
-
-              if (type === InsuranceType.KONUT) {
-                const { data: existingAssets } = await supabase
-                  .from('customer_assets')
-                  .select('id')
-                  .eq('customer_id', customerId)
-                  .eq('type', 'Konut');
-
-                if (!existingAssets || existingAssets.length === 0) {
-                  await supabase.from('customer_assets').insert({
-                    customer_id: customerId,
-                    type: 'Konut',
-                    description: 'Otomatik Oluşturulan Konut',
-                    value: 0
-                  });
-                }
-              }
-            }
-
-          } catch (err) {
-            console.error("Row import error:", err, row);
-            errorCount++;
-          }
+          } catch (err) { }
         }
-
-
-        showSuccess('İşlem Tamamlandı', `Başarılı: ${successCount}, Hatalı: ${errorCount}, Atlanan: ${skippedCount}`);
-        fetchPolicies();
-
-      } catch (error) {
-        console.error("Excel reading error:", error);
-        showError('Hata', "Dosya okunamadı veya işlenirken hata oluştu.");
-      } finally {
-        setLoading(false);
-        if (fileInputRef.current) fileInputRef.current.value = '';
-      }
+      } catch (error) { }
     };
     reader.readAsBinaryString(file);
   };
@@ -1093,289 +910,21 @@ export const Policies: React.FC<PoliciesProps> = ({ onNavigate }) => {
       </div >
 
       {/* Add Policy Modal */}
-      {
-        isAddModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-5xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-200 dark:border-slate-700">
-              <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-900/50">
-                <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-brand-primary/10 text-brand-primary flex items-center justify-center">
-                    <Plus className="w-5 h-5" />
-                  </div>
-                  {editingPolicyId ? 'Poliçe Düzenle' : 'Yeni Poliçe Ekle'}
-                </h3>
-                <button onClick={() => setIsAddModalOpen(false)} className="btn-icon rounded-full">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* New Horizontal Layout for Edit/Add */}
-              <form onSubmit={handleSavePolicy} className="p-0 relative">
-                {/* Custom Delete Confirmation Overlay */}
-                {deleteConfirmId && (
-                  <div className="absolute inset-0 z-50 bg-white/95 dark:bg-slate-900/95 flex items-center justify-center p-6 animate-in fade-in duration-200">
-                    <div className="max-w-md w-full text-center space-y-4">
-                      <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-2">
-                        <AlertTriangle className="w-8 h-8" />
-                      </div>
-                      <h4 className="text-xl font-bold text-slate-800 dark:text-white">Poliçeyi Silmek İstiyor musunuz?</h4>
-                      <p className="text-slate-500 dark:text-slate-400">Bu işlem geri alınamaz. Poliçe ve ilgili finansal kayıtlar kalıcı olarak silinecektir.</p>
-
-                      <div className="flex items-center justify-center gap-3 pt-4">
-                        <button
-                          type="button"
-                          onClick={() => setDeleteConfirmId(null)}
-                          className="btn-ghost px-6 py-2.5 bg-slate-100 dark:bg-slate-800"
-                        >
-                          İptal
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDeletePolicy(deleteConfirmId)}
-                          className="btn-danger px-6 py-2.5 shadow-lg shadow-red-600/20"
-                        >
-                          Evet, Sil
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex flex-col md:flex-row h-[600px]">
-                  {/* Left: Main Details */}
-                  <div className="flex-1 p-6 space-y-3 overflow-y-auto border-r border-slate-100 dark:border-slate-700 custom-scrollbar">
-                    <div className="space-y-3">
-
-                      {/* Status Toggle */}
-                      <div className="space-y-1">
-                        <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Poliçe Durumu</label>
-                        <div className="flex items-center gap-4">
-                          <button
-                            type="button"
-                            onClick={() => setNewPolicy({ ...newPolicy, status: 'Active' })}
-                            className={`flex-1 py-1.5 rounded-lg border text-sm font-medium transition-colors ${newPolicy.status === 'Active' ? 'bg-green-50 border-green-200 text-green-700' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}
-                          >
-                            Aktif Poliçe
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setNewPolicy({ ...newPolicy, status: 'Potential' })}
-                            className={`flex-1 py-1.5 rounded-lg border text-sm font-medium transition-colors ${newPolicy.status === 'Potential' ? 'bg-purple-50 border-purple-200 text-purple-700' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}
-                          >
-                            Potansiyel
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Row 2: Policy No & Salesperson */}
-                      <div className="grid grid-cols-12 gap-4">
-                        <div className="col-span-4 space-y-1">
-                          <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Poliçe No {newPolicy.status === 'Potential' && <span className="text-[10px] text-slate-300 font-normal normal-case">(Otomatik)</span>}</label>
-                          <input
-                            required={newPolicy.status !== 'Potential'}
-                            type="text"
-                            value={newPolicy.policyNo}
-                            onChange={e => setNewPolicy({ ...newPolicy, policyNo: e.target.value })}
-                            className="input-std font-mono py-1.5"
-                            placeholder={newPolicy.status === 'Potential' ? "Otomatik" : "POL-..."}
-                          />
-                        </div>
-                        <div className="col-span-8 space-y-1">
-                          <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Satış Temsilcisi</label>
-                          <select
-                            value={newPolicy.salespersonId}
-                            onChange={e => setNewPolicy({ ...newPolicy, salespersonId: e.target.value })}
-                            className="select-std py-1.5"
-                          >
-                            <option value="">Seçiniz...</option>
-                            {users
-                              .filter(u => hasRole(u, 'Satışçı'))
-                              .map(u => (
-                                <option key={u.id} value={u.id}>{u.full_name}</option>
-                              ))}
-                          </select>
-                        </div>
-                      </div>
-
-                      {/* Row 3: Category & Product */}
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                          <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Branş</label>
-                          <select
-                            value={newPolicy.categoryId}
-                            onChange={e => {
-                              const catId = e.target.value;
-                              setNewPolicy({ ...newPolicy, categoryId: catId, productId: '' });
-
-                              // Sort products alphabetically first (immutable sort)
-                              const sortedProducts = [...products].sort((a, b) => a.name_tr.localeCompare(b.name_tr, 'tr'));
-
-                              // Filter products by selected category
-                              if (catId) {
-                                setFilteredProducts(sortedProducts.filter(p => p.category_id === catId));
-                              } else {
-                                setFilteredProducts(sortedProducts);
-                              }
-                            }}
-                            className="select-std w-full h-[42px]"
-                          >
-                            <option value="">Branş Seçiniz</option>
-                            {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name_tr}</option>)}
-                          </select>
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Ürün</label>
-                          <SearchableSelect
-                            options={filteredProducts.map(p => ({ value: p.id, label: p.name_tr }))}
-                            value={newPolicy.productId}
-                            onChange={(val) => setNewPolicy({ ...newPolicy, productId: val })}
-                            placeholder="Ürün Seçiniz..."
-                          />
-                          {!newPolicy.categoryId && (
-                            <p className="text-[10px] text-amber-500 ml-1">Önce branş seçiniz</p>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between">
-                          <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Müşteri</label>
-                          {/* New Customer Shortcut */}
-                          <button type="button" onClick={() => {
-                            if (onNavigate) {
-                              localStorage.setItem('openNewCustomerModal', 'true');
-                              onNavigate('customers');
-                            } else {
-                              window.location.hash = '#/customers';
-                            }
-                          }} className="text-[10px] text-brand-primary hover:underline flex items-center gap-1 font-medium bg-brand-primary/5 px-2 py-0.5 rounded-full hover:bg-brand-primary/10 transition-colors">
-                            <UserPlus className="w-3 h-3" /> Yeni Müşteri Ekle
-                          </button>
-                        </div>
-                        <SearchableSelect
-                          options={customers.map(c => ({ value: c.id, label: `${c.full_name} ${(c.tcNo || c.vkn) ? `(${c.tcNo || c.vkn})` : ''}` }))}
-                          value={newPolicy.customerId}
-                          onChange={(val) => setNewPolicy({ ...newPolicy, customerId: val })}
-                          placeholder="Müşteri Seçin..."
-                        />
-                      </div>
-
-                      {/* Row 4: Company & Note */}
-                      <div className="grid grid-cols-12 gap-4 items-start">
-                        <div className="col-span-5 space-y-1">
-                          <div className="flex justify-between items-center pr-1">
-                            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Sigorta Şirketi</label>
-                          </div>
-                          <SearchableSelect
-                            options={companies.map(c => ({ value: c.id, label: c.name }))}
-                            value={newPolicy.companyId}
-                            onChange={(val) => setNewPolicy({ ...newPolicy, companyId: val })}
-                            placeholder="Şirket Seçin..."
-                          />
-                        </div>
-
-                        <div className="col-span-7 space-y-1">
-                          <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Not / Açıklama</label>
-                          <textarea
-                            value={newPolicy.description || ''}
-                            onChange={e => setNewPolicy({ ...newPolicy, description: e.target.value })}
-                            className="input-std min-h-[80px] py-2 resize-none"
-                            placeholder="Poliçe notu..."
-                          />
-                        </div>
-                      </div>
-
-                    </div>
-                  </div>
-                  {/* Right: Financial & Dates */}
-                  <div className="w-full md:w-[320px] bg-slate-50 dark:bg-slate-900/50 p-6 flex flex-col justify-between border-l border-slate-100 dark:border-slate-700">
-                    <div className="space-y-5">
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Başlangıç Tarihi</label>
-                        <div className="relative">
-                          <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                          <DatePicker
-                            value={newPolicy.startDate}
-                            onChange={(date) => setNewPolicy({ ...newPolicy, startDate: date })}
-                            placeholder="Başlangıç"
-                            className="w-full"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="flex-1">
-                        <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Bitiş Tarihi</label>
-                        <div className="relative">
-                          <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                          <DatePicker
-                            value={newPolicy.endDate}
-                            onChange={(date) => setNewPolicy({ ...newPolicy, endDate: date })}
-                            placeholder="Bitiş"
-                            className="w-full"
-                          />
-                        </div>
-                      </div>
-
-                      <hr className="border-slate-200 dark:border-slate-700" />
-
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Prim Tutarı (₺)</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          className="input-std font-bold text-right"
-                          placeholder="0.00"
-                          value={newPolicy.premium === 0 ? '' : newPolicy.premium}
-                          onChange={e => {
-                            const val = parseFloat(e.target.value);
-                            setNewPolicy({ ...newPolicy, premium: isNaN(val) ? 0 : val });
-                          }}
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Komisyon (₺)</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          className="input-std font-medium text-brand-secondary text-right"
-                          placeholder="0.00"
-                          value={newPolicy.commissionAmount === 0 ? '' : newPolicy.commissionAmount}
-                          onChange={e => {
-                            const val = parseFloat(e.target.value);
-                            setNewPolicy({ ...newPolicy, commissionAmount: isNaN(val) ? 0 : val });
-                          }}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-3 pt-6">
-                      <button type="submit" disabled={loading} className="btn-primary w-full py-3 font-bold shadow-lg flex items-center justify-center gap-2">
-                        <CheckCircle className="w-5 h-5" />
-                        Kaydet
-                      </button>
-
-                      {editingPolicyId && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setDeleteConfirmId(editingPolicyId);
-                          }}
-                          className="btn-danger w-full py-3 font-medium flex items-center justify-center gap-2"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          Poliçeyi Sil
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </form>
-            </div >
-          </div >
-        )
-      }
+      <PolicyFormModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onSuccess={() => {
+          fetchPolicies();
+          setIsAddModalOpen(false);
+        }}
+        policyToEdit={editingPolicy}
+        customers={customers}
+        companies={companies}
+        users={users}
+        categories={categories}
+        products={products}
+        onNavigate={onNavigate}
+      />
     </div >
   );
 };

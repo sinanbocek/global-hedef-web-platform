@@ -7,6 +7,7 @@ import {
 import {
   TrendingUp, TrendingDown, DollarSign, Wallet, FileText, Plus, Filter, Calendar, Trash2, Edit2, Save
 } from 'lucide-react';
+import { DatePicker } from './ui/DatePicker';
 import { MOCK_POLICIES, MOCK_TRANSACTIONS, DEFAULT_PROFIT_DISTRIBUTION, MOCK_USERS } from '../constants';
 import { FinancialTransaction, TransactionType, TransactionCategory, ProfitDistribution, CompanySettings, BankSettings, PaymentMethod } from '../types';
 import { supabase } from '../lib/supabase';
