@@ -14,6 +14,8 @@ import { FinancialManagement } from './components/FinancialManagement/FinancialM
 import { DataImport } from './components/DataImport';
 import { ToastProvider } from './contexts/ToastContext';
 import { Users, FileText } from 'lucide-react';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { Login } from './components/Login';
 
 const PlaceholderPage = ({ title }: { title: string }) => (
   <div className="flex flex-col items-center justify-center h-[500px] text-slate-400">
@@ -25,7 +27,8 @@ const PlaceholderPage = ({ title }: { title: string }) => (
   </div>
 );
 
-const App: React.FC = () => {
+const ProtectedApp = () => {
+  const { user, loading } = useAuth();
   const [currentPage, setCurrentPage] = useState('dashboard');
 
   const renderContent = () => {
@@ -38,19 +41,40 @@ const App: React.FC = () => {
       case 'settings': return <Settings onNavigate={setCurrentPage} />;
       case 'financial': return <FinancialManagement />;
       case 'import': return <DataImport />;
-
       default: return <Dashboard />;
     }
   };
 
+  if (loading) {
+    return (
+      <div className="h-screen w-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-primary"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Login />;
+  }
+
+  return (
+    <>
+      <Layout activePage={currentPage} onNavigate={setCurrentPage}>
+        {renderContent()}
+      </Layout>
+      <AIChatAssistant />
+    </>
+  );
+};
+
+const App: React.FC = () => {
   return (
     <HashRouter>
-      <ToastProvider>
-        <Layout activePage={currentPage} onNavigate={setCurrentPage}>
-          {renderContent()}
-        </Layout>
-        <AIChatAssistant />
-      </ToastProvider>
+      <AuthProvider>
+        <ToastProvider>
+          <ProtectedApp />
+        </ToastProvider>
+      </AuthProvider>
     </HashRouter>
   );
 };

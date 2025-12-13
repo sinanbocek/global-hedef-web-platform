@@ -19,7 +19,7 @@ export const GeminiService = {
         
         Müşteri Verisi:
         Sigorta Türü: ${type}
-        TC/Vergi No: ${customerData.tcKn || 'Bilinmiyor'}
+        TC/Vergi No: ${customerData.tcNo || customerData.vkn || 'Bilinmiyor'}
         Plaka: ${customerData.plate || 'Yok'}
         
         Yanıtı Türkçe ver. Müşteriye hitap et. Riskleri ve neden bu sigortayı alması gerektiğini 2 cümle ile açıkla.

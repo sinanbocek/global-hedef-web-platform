@@ -127,7 +127,7 @@ export const QuotationWizard: React.FC = () => {
 
     // AI Call
     try {
-      const riskText = await GeminiService.analyzeRisk({ tcKn: formData.tcKn, plate: formData.plate }, insuranceType);
+      const riskText = await GeminiService.analyzeRisk({ tcNo: formData.tcKn, plate: formData.plate }, insuranceType);
       setAiAnalysis(riskText);
     } catch (e) {
       setAiAnalysis("Analiz yapılamadı.");

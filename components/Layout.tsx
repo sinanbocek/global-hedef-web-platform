@@ -33,9 +33,15 @@ const NavItem = ({ icon: Icon, label, id, active, onClick, collapsed }: NavItemP
   </button>
 );
 
+import { useAuth } from '../contexts/AuthContext';
+
+// ... imports remain same ...
+
 export const Layout: React.FC<LayoutProps> = ({ children, activePage, onNavigate }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { userProfile, signOut } = useAuth(); // Auth Hook
+
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(() => {
     const saved = localStorage.getItem('sidebar_collapsed');
@@ -43,8 +49,9 @@ export const Layout: React.FC<LayoutProps> = ({ children, activePage, onNavigate
   });
   const [customLogo, setCustomLogo] = useState<string | null>(null);
 
-  // Simulated logged-in user (Admin)
-  const user = MOCK_USERS.find(u => u.roles.includes('Admin')) || MOCK_USERS[0];
+  // Use real user profile or fallback
+  const userName = userProfile?.fullName || 'Misafir Kullanıcı';
+  const userRole = userProfile?.roles?.[0] || 'Kullanıcı';
 
   useEffect(() => {
     const savedLogo = localStorage.getItem('company_logo');
@@ -135,16 +142,16 @@ export const Layout: React.FC<LayoutProps> = ({ children, activePage, onNavigate
           {/* User Profile / Logout */}
           <div className="p-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
             <div className={`flex items-center ${isCollapsed ? 'justify-center mb-0' : 'mb-3'}`}>
-              <img src={`https://ui-avatars.com/api/?name=${user.fullName}&background=003087&color=fff`} alt="User" className="w-10 h-10 rounded-full border-2 border-white dark:border-slate-600 shadow-sm" />
+              <img src={`https://ui-avatars.com/api/?name=${userName}&background=003087&color=fff`} alt="User" className="w-10 h-10 rounded-full border-2 border-white dark:border-slate-600 shadow-sm" />
               {!isCollapsed && (
                 <div className="ml-3 overflow-hidden">
-                  <p className="text-sm font-semibold text-slate-800 dark:text-white truncate">{user.fullName}</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{user.roles.join(', ')}</p>
+                  <p className="text-sm font-semibold text-slate-800 dark:text-white truncate">{userName}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{userRole}</p>
                 </div>
               )}
             </div>
             {!isCollapsed && (
-              <button className="flex items-center justify-center w-full px-4 py-2 text-sm text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-900/10 dark:hover:bg-red-900/20 rounded-lg transition-colors">
+              <button onClick={() => signOut()} className="flex items-center justify-center w-full px-4 py-2 text-sm text-red-600 bg-white border border-red-200 hover:bg-red-50 dark:bg-slate-800 dark:border-red-900/30 dark:text-red-400 dark:hover:bg-red-900/10 rounded-lg transition-colors shadow-sm">
                 <LogOut className="w-4 h-4 mr-2" />
                 Çıkış Yap
               </button>
@@ -158,7 +165,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, activePage, onNavigate
         {/* Top Bar */}
         <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 h-16 flex items-center justify-between px-6 lg:px-10">
           <div className="flex items-center text-slate-500 dark:text-slate-400 text-sm">
-            <span className="hidden md:inline">Hoşgeldiniz, {user.fullName}.</span>
+            <span className="hidden md:inline">Hoşgeldiniz, {userName}.</span>
           </div>
           <div className="flex items-center space-x-4">
             <button

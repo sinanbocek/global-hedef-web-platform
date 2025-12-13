@@ -85,7 +85,7 @@ export const MOCK_FAMILY_GROUPS: FamilyGroup[] = [
 
 export const MOCK_CUSTOMERS: Customer[] = [
   {
-    id: 'c1', customerNo: 'GH-1001', type: 'Bireysel', customerType: 'BIREYSEL', tcKn: '12345678901', fullName: 'Ahmet Yılmaz', email: 'ahmet@gmail.com', phone: '0532 123 45 67',
+    id: 'c1', customerNo: 'GH-1001', customerType: 'BIREYSEL', tcNo: '12345678901', fullName: 'Ahmet Yılmaz', email: 'ahmet@gmail.com', phone: '0532 123 45 67',
     riskScore: 20, tags: ['Sadık Müşteri', 'Ödeme Düzenli'], createdAt: '2022-01-15', familyGroupId: 'f2',
     assets: [
       { id: 'a1', type: 'Araç', description: '34 ABC 12', details: '2020 BMW 320i', value: 2500000 },
@@ -97,25 +97,25 @@ export const MOCK_CUSTOMERS: Customer[] = [
     ]
   },
   {
-    id: 'c2', customerNo: 'GH-1002', type: 'Bireysel', customerType: 'BIREYSEL', tcKn: '23456789012', fullName: 'Ayşe Demir', email: 'ayse.demir@hotmail.com', phone: '0544 234 56 78',
+    id: 'c2', customerNo: 'GH-1002', customerType: 'BIREYSEL', tcNo: '23456789012', fullName: 'Ayşe Demir', email: 'ayse.demir@hotmail.com', phone: '0544 234 56 78',
     riskScore: 45, tags: ['Yeni Evli'], createdAt: '2023-06-20', familyGroupId: 'f1',
     assets: [{ id: 'a3', type: 'Araç', description: '54 ZZ 999', details: '2018 Fiat Egea', value: 800000 }],
     notes: []
   },
   {
-    id: 'c3', customerNo: 'GH-1003', type: 'Bireysel', customerType: 'BIREYSEL', tcKn: '34567890123', fullName: 'Mehmet Kaya', email: 'mkaya@yahoo.com', phone: '0555 345 67 89',
+    id: 'c3', customerNo: 'GH-1003', customerType: 'BIREYSEL', tcNo: '34567890123', fullName: 'Mehmet Kaya', email: 'mkaya@yahoo.com', phone: '0555 345 67 89',
     riskScore: 80, tags: ['Hasarlı', 'Geç Ödeme'], createdAt: '2023-11-01', familyGroupId: 'f1',
     assets: [],
     notes: [{ id: 'n3', date: '2023-12-01', type: 'Not', content: 'Ödeme için 3 kere arandı, ulaşılmadı.', createdBy: 'Operasyon' }]
   },
   {
-    id: 'c4', customerNo: 'GH-1004', type: 'Bireysel', customerType: 'BIREYSEL', tcKn: '45678901234', fullName: 'Caner Erkin', email: 'caner@futbol.com', phone: '0533 456 78 90',
+    id: 'c4', customerNo: 'GH-1004', customerType: 'BIREYSEL', tcNo: '45678901234', fullName: 'Caner Erkin', email: 'caner@futbol.com', phone: '0533 456 78 90',
     riskScore: 10, tags: [], createdAt: '2024-01-10', familyGroupId: 'f1',
     assets: [{ id: 'a4', type: 'Araç', description: '34 FB 1907', details: '2023 Mercedes G-Wagon', value: 12000000 }],
     notes: []
   },
   {
-    id: 'c5', customerNo: 'GH-2001', type: 'Kurumsal', customerType: 'KURUMSAL', tcKn: '9876543210', fullName: 'ABC Lojistik Ltd. Şti.', contactPerson: 'Hasan Yılmaz', email: 'info@abclojistik.com', phone: '0264 222 33 44',
+    id: 'c5', customerNo: 'GH-2001', customerType: 'KURUMSAL', vkn: '9876543210', fullName: 'ABC Lojistik Ltd. Şti.', contactPersonId: undefined, email: 'info@abclojistik.com', phone: '0264 222 33 44',
     taxOffice: 'Ali Fuat Cebesoy', riskScore: 30, tags: ['Filo', 'Yüksek Ciro'], createdAt: '2020-05-15', familyGroupId: 'f3',
     assets: [
       { id: 'a5', type: 'İşyeri', description: 'Merkez Depo', details: 'Hanlı OSB', value: 25000000 },

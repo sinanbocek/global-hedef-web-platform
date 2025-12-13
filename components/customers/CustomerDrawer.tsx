@@ -394,7 +394,7 @@ export const CustomerDrawer: React.FC<CustomerDrawerProps> = ({
                                                             p.status === 'Potential' ? 'Potansiyel' : p.status;
 
                                                 // Find plate number for traffic/kasko policies from description or customer assets
-                                                const isVehiclePolicy = p.type === 'Trafik' || p.type === 'Kasko' || p.type === 'Elementer' || (p.productName && (p.productName.includes('Trafik') || p.productName.includes('Kasko')));
+                                                const isVehiclePolicy = p.type === InsuranceType.TRAFIK || p.type === InsuranceType.KASKO || p.type === 'Elementer' as any || (p.productName && (p.productName.includes('Trafik') || p.productName.includes('Kasko')));
 
                                                 // Try to extract plate from description first (Format: "Plaka: 34ABC123" or similar)
                                                 // Coverage for different separators and loose matching

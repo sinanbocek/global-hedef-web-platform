@@ -51,16 +51,23 @@ export const Customers: React.FC<CustomersProps> = ({ onNavigate }) => {
       const { data: companiesData } = await supabase.from('settings_companies').select('id, name, logo');
       const companyMap = new Map((companiesData || []).map(c => [c.id, c]));
 
-      const { data, error } = await supabase
+      // Query with Timeout
+      const queryPromise = supabase
         .from('customers')
         .select(`
-  *,
-  assets: customer_assets(*),
-    notes: customer_notes(*),
-      family_group: family_groups(*),
-        policies: policies(*, insurance_products(name_tr))
+            *,
+            assets: customer_assets(*),
+            notes: customer_notes(*),
+            family_group: family_groups(*),
+            policies: policies(*, insurance_products(name_tr))
         `)
         .order('created_at', { ascending: false });
+
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Veri çekme işlemi zaman aşımına uğradı (10sn). İnternet bağlantınızı kontrol edin.')), 10000)
+      );
+
+      const { data, error }: any = await Promise.race([queryPromise, timeoutPromise]);
 
       if (error) throw error;
 
@@ -134,9 +141,10 @@ export const Customers: React.FC<CustomersProps> = ({ onNavigate }) => {
       }));
 
       setCustomers(formattedData);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching customers:', error);
-      showError('Hata', 'Veriler çekilirken hata oluştu. Lütfen bağlantıyı kontrol edin.');
+      alert('DEBUG HATA: ' + (error.message || JSON.stringify(error)));
+      showError('Hata', 'Veriler çekilemedi: ' + error.message);
     } finally {
       setIsLoading(false);
     }
@@ -182,7 +190,7 @@ export const Customers: React.FC<CustomersProps> = ({ onNavigate }) => {
 
   /* State for new family creation */
   const [newFamily, setNewFamily] = useState<Partial<FamilyGroup>>({});
-  const { showToast, showSuccess, showError } = useToast();
+  const { showSuccess, showError } = useToast();
 
   // Family Edit State
   const [editingFamilyId, setEditingFamilyId] = useState<string | null>(null);
@@ -271,7 +279,7 @@ export const Customers: React.FC<CustomersProps> = ({ onNavigate }) => {
       setIsFamilyModalOpen(false);
       setNewFamily({});
     } catch (error) {
-      showToast('Hata', 'Aile grubu oluşturulamadı', 'error');
+      showError('Hata', 'Aile grubu oluşturulamadı');
       console.error(error);
     }
   };
@@ -292,7 +300,7 @@ export const Customers: React.FC<CustomersProps> = ({ onNavigate }) => {
     } catch (error) {
 
       console.error(error);
-      showToast('Hata', 'Güncelleme başarısız', 'error');
+      showError('Hata', 'Güncelleme başarısız');
     }
   };
 
