@@ -99,6 +99,7 @@ export interface Policy {
   companyId?: string;
   company: string;
   companyLogo?: string;
+  companyDomain?: string;
   type: InsuranceType;
   productName?: string; // Product name from insurance_products
   startDate: string;

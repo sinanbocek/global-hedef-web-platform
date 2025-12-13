@@ -184,7 +184,7 @@ export const Policies: React.FC<PoliciesProps> = ({ onNavigate }) => {
           .select(`
             *,
             customer: customers(full_name),
-            company: settings_companies(name, logo),
+            company: settings_companies(name, logo, domain),
             product: insurance_products(id, name_tr, category_id)
           `)
           .order('end_date', { ascending: true })
@@ -193,6 +193,7 @@ export const Policies: React.FC<PoliciesProps> = ({ onNavigate }) => {
         if (error) throw error;
 
         if (data && data.length > 0) {
+          console.log('Fetched policies raw data:', data); // DEBUG log
           allData = [...allData, ...data];
           if (data.length < step) {
             hasMore = false;
@@ -219,9 +220,11 @@ export const Policies: React.FC<PoliciesProps> = ({ onNavigate }) => {
         commissionAmount: p.commission_amount || 0,
         status: p.status as any,
         companyLogo: p.company?.logo,
+        companyDomain: p.company?.domain,
         description: p.description || '',
         salespersonId: p.salesperson_id || null,
-        categoryId: p.category_id || '',
+        // Use policy's category_id, or fallback to product's category_id
+        categoryId: p.category_id || p.product?.category_id || '',
         productId: p.product_id || ''
       }));
 
@@ -277,6 +280,15 @@ export const Policies: React.FC<PoliciesProps> = ({ onNavigate }) => {
       description: policy.description || '',
       salespersonId: policy.salespersonId || ''
     });
+
+    // Filter products based on the policy's categoryId
+    const sortedProducts = [...products].sort((a, b) => a.name_tr.localeCompare(b.name_tr, 'tr'));
+    if (policy.categoryId) {
+      setFilteredProducts(sortedProducts.filter(p => p.category_id === policy.categoryId));
+    } else {
+      setFilteredProducts(sortedProducts);
+    }
+
     setIsAddModalOpen(true);
   };
 
@@ -941,28 +953,31 @@ export const Policies: React.FC<PoliciesProps> = ({ onNavigate }) => {
                         {(() => {
                           const companyName = policy.company;
                           const dbLogo = policy.companyLogo;
+
+                          // Priority:
+                          // 1. Explicit Logo URL from DB
+                          // 2. Clearbit Logo from DB Domain
+                          // 3. Initials Fallback (ui-avatars)
+
                           let logoUrl = dbLogo;
-                          if (!logoUrl) {
-                            const domainMap: Record<string, string> = {
-                              'Corpus Sigorta': 'corpussigorta.com.tr',
-                              'Neova Sigorta': 'neova.com.tr',
-                              'Doğa Sigorta': 'dogasigorta.com',
-                              'Ana Sigorta': 'anasigorta.com.tr',
-                            };
-                            let logoDomain = domainMap[companyName];
-                            if (!logoDomain) {
-                              logoDomain = `${companyName.toLowerCase().replace(/ /g, '').replace(/sigorta/g, '').replace(/emeklilik/g, '')}.com.tr`;
-                            }
-                            logoUrl = `https://logo.clearbit.com/${logoDomain}`;
+                          if (!logoUrl && policy.companyDomain) {
+                            logoUrl = `https://logo.clearbit.com/${policy.companyDomain}`;
                           }
+
                           const fallbackLogoUrl = `https://ui-avatars.com/api/?name=${companyName}&background=f1f5f9&color=64748b`;
+
                           return (
                             <>
                               <div className="w-6 h-6 rounded-md bg-white border border-slate-100 flex items-center justify-center overflow-hidden p-0.5">
                                 <img
-                                  src={logoUrl}
-                                  onError={(e) => { (e.target as HTMLImageElement).src = fallbackLogoUrl }}
+                                  src={logoUrl || fallbackLogoUrl}
                                   alt={companyName}
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    if (target.src !== fallbackLogoUrl) {
+                                      target.src = fallbackLogoUrl;
+                                    }
+                                  }}
                                   className="w-full h-full object-contain"
                                 />
                               </div>
