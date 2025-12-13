@@ -394,6 +394,21 @@ export interface CommissionPayment {
   payment_date: string; // ISO timestamp
   status: 'pending' | 'paid' | 'cancelled';
   payment_method?: string;
-  description?: string;
+  payment_description?: string;
   created_at: string;
+}
+
+export interface Reminder {
+  id: string;
+  user_id: string;
+  customer_id?: string;
+  title: string;
+  description?: string;
+  due_date: string;
+  is_completed: boolean;
+  priority: 'high' | 'medium' | 'low';
+  created_at: string;
+  customer?: {
+    full_name: string;
+  };
 }

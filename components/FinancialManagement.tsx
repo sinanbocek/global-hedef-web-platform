@@ -422,20 +422,20 @@ export const FinancialManagement: React.FC = () => {
 
                 {/* Date Range Filter */}
                 <div className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2">
-                    <Calendar className="w-4 h-4 text-slate-400" />
-                    <input
-                        type="date"
-                        value={dateRange.start}
-                        onChange={e => setDateRange({ ...dateRange, start: e.target.value })}
-                        className="px-2 py-1 text-sm border-none outline-none bg-transparent dark:text-white"
-                    />
-                    <span className="text-slate-400">—</span>
-                    <input
-                        type="date"
-                        value={dateRange.end}
-                        onChange={e => setDateRange({ ...dateRange, end: e.target.value })}
-                        className="px-2 py-1 text-sm border-none outline-none bg-transparent dark:text-white"
-                    />
+                    <div className="w-40">
+                        <DatePicker
+                            value={dateRange.start}
+                            onChange={(date) => setDateRange({ ...dateRange, start: date })}
+                            placeholder="Başlangıç"
+                        />
+                    </div>
+                    <div className="w-40">
+                        <DatePicker
+                            value={dateRange.end}
+                            onChange={(date) => setDateRange({ ...dateRange, end: date })}
+                            placeholder="Bitiş"
+                        />
+                    </div>
                 </div>
             </div>
 

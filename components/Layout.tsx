@@ -1,8 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Menu, X, LayoutDashboard, FileText, Users, PieChart, ShoppingCart, Truck, BarChart2, Settings, LogOut, Search, Bell, ChevronRight, ChevronLeft, Shield, TrendingUp, Upload } from 'lucide-react';
+import { Menu, X, LayoutDashboard, FileText, Users, ShoppingCart, Truck, Settings, LogOut, Search, Bell, ChevronRight, ChevronLeft, Shield, TrendingUp, Upload } from 'lucide-react';
 import { COMPANY_DETAILS, MOCK_USERS } from '../constants';
+
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -98,6 +98,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, activePage, onNavigate
           >
             {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
           </button>
+
           {/* Logo Area */}
           <div className={`h-auto flex items-center justify-center border-b border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 transition-all duration-300 ${isCollapsed ? 'p-2' : 'px-6'}`}>
             {isCollapsed ? (
@@ -118,17 +119,13 @@ export const Layout: React.FC<LayoutProps> = ({ children, activePage, onNavigate
           <nav className="flex-1 px-4 py-6 overflow-y-auto overflow-x-hidden">
             <div className="mb-6">
               {!isCollapsed && <p className="px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">MENÜ</p>}
-              <NavItem id="dashboard" label="Panel" icon={LayoutDashboard} active={activePage} onClick={(page) => { onNavigate(page); navigate('/'); }} collapsed={isCollapsed} />
-              <NavItem id="quote" label="Hızlı Teklif" icon={FileText} active={activePage} onClick={(page) => { onNavigate(page); navigate('/quote'); }} collapsed={isCollapsed} />
+              <NavItem id="dashboard" label="Ajanda" icon={LayoutDashboard} active={activePage} onClick={(page) => { onNavigate(page); navigate('/'); }} collapsed={isCollapsed} />
               <NavItem id="customers" label="Müşteriler" icon={Users} active={activePage} onClick={(page) => { onNavigate(page); navigate('/customers'); }} collapsed={isCollapsed} />
-              <NavItem id="policies" label="Poliçeler" icon={PieChart} active={activePage} onClick={(page) => { onNavigate(page); navigate('/policies'); }} collapsed={isCollapsed} />
+              <NavItem id="policies" label="Poliçeler" icon={FileText} active={activePage} onClick={(page) => { onNavigate(page); navigate('/policies'); }} collapsed={isCollapsed} />
             </div>
 
             <div>
               {!isCollapsed && <p className="px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">YÖNETİM</p>}
-              {user.roles.includes('Admin') && (
-                <NavItem id="analysis" label="Finansal Analiz" icon={BarChart2} active={activePage} onClick={(page) => { onNavigate(page); navigate('/analysis'); }} collapsed={isCollapsed} />
-              )}
               <NavItem id="financial" label="Bilanço & Prim" icon={TrendingUp} active={activePage} onClick={(page) => { onNavigate(page); navigate('/financial'); }} collapsed={isCollapsed} />
               <NavItem id="settings" label="Ayarlar" icon={Settings} active={activePage} onClick={(page) => { onNavigate(page); navigate('/settings'); }} collapsed={isCollapsed} />
               <NavItem id="import" label="Veri Aktar" icon={Upload} active={activePage} onClick={(page) => { onNavigate(page); navigate('/import'); }} collapsed={isCollapsed} />
@@ -164,9 +161,11 @@ export const Layout: React.FC<LayoutProps> = ({ children, activePage, onNavigate
             <span className="hidden md:inline">Hoşgeldiniz, {user.fullName}.</span>
           </div>
           <div className="flex items-center space-x-4">
-            <button className="relative p-2 text-slate-400 hover:text-brand-primary transition-colors">
+            <button
+              onClick={() => { onNavigate('dashboard'); navigate('/'); }}
+              className="relative p-2 text-slate-400 hover:text-brand-primary transition-colors ring-0 focus:outline-none"
+            >
               <Bell className="w-6 h-6" />
-              <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 border-2 border-white dark:border-slate-800 rounded-full"></span>
             </button>
             <div className="h-8 w-px bg-slate-200 dark:bg-slate-700 mx-2"></div>
             <span className="text-sm font-medium text-slate-600 dark:text-slate-300">{new Date().toLocaleDateString('tr-TR')}</span>

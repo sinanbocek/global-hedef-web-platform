@@ -285,7 +285,13 @@ export const Analysis: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Tarih</label>
-                <div className="relative"><input type="date" className="input-std appearance-none" value={newTransaction.date} onChange={(e) => setNewTransaction({ ...newTransaction, date: e.target.value })} style={{ colorScheme: 'light dark' }} /></div>
+                <div className="relative">
+                  <DatePicker
+                    value={newTransaction.date}
+                    onChange={(date) => setNewTransaction({ ...newTransaction, date })}
+                    placeholder="Tarih"
+                  />
+                </div>
               </div>
 
               <div>

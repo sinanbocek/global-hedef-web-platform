@@ -10,6 +10,7 @@ import { MOCK_POLICIES } from '../constants';
 import * as XLSX from 'xlsx';
 
 import { SearchableSelect } from './ui/SearchableSelect';
+import { DatePicker } from './ui/DatePicker';
 import { useToast } from '../context/ToastContext';
 import { useLocation } from 'react-router-dom';
 
@@ -38,19 +39,30 @@ export const Policies: React.FC<PoliciesProps> = ({ onNavigate }) => {
   const [filterProduct, setFilterProduct] = useState<string>('All');
 
   // Helper to get days remaining
+  // Helper to get days remaining (Midnight to Midnight comparison)
   const getDaysRemaining = (dateStr: string) => {
-    const end = new Date(dateStr);
+    if (!dateStr) return 0;
+    // Handle YYYY-MM-DD strictly as local date
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const end = new Date(y, m - 1, d); // Local Midnight
+
     const now = new Date();
+    now.setHours(0, 0, 0, 0); // Local Midnight
+
     const diffTime = end.getTime() - now.getTime();
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return Math.round(diffTime / (1000 * 60 * 60 * 24));
   };
 
   // Helper to get Derived Status
   const getPolicyStatus = (policy: Policy) => {
     if (policy.status === 'Potential') return 'Potential';
     if (policy.status === 'Cancelled') return 'Cancelled';
+
     const days = getDaysRemaining(policy.endDate);
-    if (days <= 0) return 'Expired';
+
+    // User Rule: If End Date == Today (days=0), it is still Active.
+    // If End Date < Today (days < 0), it is Expired.
+    if (days < 0) return 'Expired';
     return 'Active';
   };
 
@@ -1282,25 +1294,24 @@ export const Policies: React.FC<PoliciesProps> = ({ onNavigate }) => {
                         <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Başlangıç Tarihi</label>
                         <div className="relative">
                           <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                          <input
-                            required={newPolicy.status !== 'Potential'}
-                            type="date"
+                          <DatePicker
                             value={newPolicy.startDate}
-                            onChange={e => setNewPolicy({ ...newPolicy, startDate: e.target.value })}
-                            className="input-std pl-9 pr-4"
+                            onChange={(date) => setNewPolicy({ ...newPolicy, startDate: date })}
+                            placeholder="Başlangıç"
+                            className="w-full"
                           />
                         </div>
                       </div>
 
-                      <div className="space-y-1.5">
+                      <div className="flex-1">
                         <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">Bitiş Tarihi</label>
                         <div className="relative">
                           <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                          <input
-                            type="date"
+                          <DatePicker
                             value={newPolicy.endDate}
-                            onChange={e => setNewPolicy({ ...newPolicy, endDate: e.target.value })}
-                            className="input-std pl-9 pr-4"
+                            onChange={(date) => setNewPolicy({ ...newPolicy, endDate: date })}
+                            placeholder="Bitiş"
+                            className="w-full"
                           />
                         </div>
                       </div>

@@ -19,6 +19,7 @@ import {
     BarChart3,
     PieChart as PieChartIcon
 } from 'lucide-react';
+import { DatePicker } from '../../ui/DatePicker';
 import {
     BarChart,
     Bar,
